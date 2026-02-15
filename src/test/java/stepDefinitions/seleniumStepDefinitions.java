@@ -269,8 +269,243 @@ public class seleniumStepDefinitions {
         dd.selectByValue(element);
     }
 
+    // --- Click actions ---
 
+    @Then("^I click by (\\w+(?: \\w+)*)$")
+    public void iClickBy(String selectKey, DataTable table) {
+        for (DataTableRow row : table.getGherkinRows()) {
+            String key = row.getCells().get(0);
+            JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+            String pageElement = pageElementObject.get(key).getAsString();
+            this.by = selectDecision.main(this.by, selectKey, pageElement);
+            webDriver.findElement(this.by).click();
+            LOGGER.info(String.format("\n\tClicked element: [%s]\n\t", key));
+        }
+    }
 
+    @Then("^I click element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iClickElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        webDriver.findElement(this.by).click();
+        LOGGER.info(String.format("\n\tClicked element: [%s]\n\t", pageKey));
+    }
+
+    @Then("^I double click element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iDoubleClickElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        WebElement element = webDriver.findElement(this.by);
+        Actions action = new Actions(webDriver);
+        action.doubleClick(element).perform();
+        LOGGER.info(String.format("\n\tDouble clicked element: [%s]\n\t", pageKey));
+    }
+
+    @Then("^I right click element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iRightClickElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        WebElement element = webDriver.findElement(this.by);
+        Actions action = new Actions(webDriver);
+        action.contextClick(element).perform();
+        LOGGER.info(String.format("\n\tRight clicked element: [%s]\n\t", pageKey));
+    }
+
+    // --- Navigation ---
+
+    @When("^I navigate back$")
+    public void iNavigateBack() {
+        webDriver.navigate().back();
+        LOGGER.info("\n\tNavigated back\n\t");
+    }
+
+    @When("^I navigate forward$")
+    public void iNavigateForward() {
+        webDriver.navigate().forward();
+        LOGGER.info("\n\tNavigated forward\n\t");
+    }
+
+    @When("^I navigate to url \"([^\"]*)\"$")
+    public void iNavigateToUrl(String url) {
+        webDriver.get(url);
+        LOGGER.info(String.format("\n\tNavigated to URL: [%s]\n\t", url));
+    }
+
+    // --- URL assertions ---
+
+    @Then("^I see current url equals \"([^\"]*)\"$")
+    public void iSeeCurrentUrlEquals(String expectedUrl) {
+        String currentUrl = webDriver.getCurrentUrl();
+        Assert.assertEquals(String.format("Expected URL [%s] but got [%s]", expectedUrl, currentUrl), expectedUrl, currentUrl);
+        LOGGER.info(String.format("\n\tCurrent URL [%s] equals expected [%s]\n\t", currentUrl, expectedUrl));
+    }
+
+    @Then("^I see current url contains \"([^\"]*)\"$")
+    public void iSeeCurrentUrlContains(String expectedText) {
+        String currentUrl = webDriver.getCurrentUrl();
+        Assert.assertTrue(String.format("Expected URL [%s] to contain [%s]", currentUrl, expectedText), currentUrl.contains(expectedText));
+        LOGGER.info(String.format("\n\tCurrent URL [%s] contains [%s]\n\t", currentUrl, expectedText));
+    }
+
+    // --- Element state assertions ---
+
+    @Then("^I see element (\\w+(?: \\w+)*) is displayed by (\\w+(?: \\w+)*)$")
+    public void iSeeElementIsDisplayed(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        boolean isDisplayed = webDriver.findElement(this.by).isDisplayed();
+        Assert.assertTrue(String.format("Expected element [%s] to be displayed but it is not", pageKey), isDisplayed);
+        LOGGER.info(String.format("\n\tElement [%s] is displayed\n\t", pageKey));
+    }
+
+    @Then("^I see element (\\w+(?: \\w+)*) is not displayed by (\\w+(?: \\w+)*)$")
+    public void iSeeElementIsNotDisplayed(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        List<WebElement> elements = webDriver.findElements(this.by);
+        boolean isNotDisplayed = elements.isEmpty() || !elements.get(0).isDisplayed();
+        Assert.assertTrue(String.format("Expected element [%s] to NOT be displayed but it is", pageKey), isNotDisplayed);
+        LOGGER.info(String.format("\n\tElement [%s] is not displayed\n\t", pageKey));
+    }
+
+    @Then("^I see element (\\w+(?: \\w+)*) is enabled by (\\w+(?: \\w+)*)$")
+    public void iSeeElementIsEnabled(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        boolean isEnabled = webDriver.findElement(this.by).isEnabled();
+        Assert.assertTrue(String.format("Expected element [%s] to be enabled but it is not", pageKey), isEnabled);
+        LOGGER.info(String.format("\n\tElement [%s] is enabled\n\t", pageKey));
+    }
+
+    @Then("^I see element (\\w+(?: \\w+)*) is disabled by (\\w+(?: \\w+)*)$")
+    public void iSeeElementIsDisabled(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        boolean isEnabled = webDriver.findElement(this.by).isEnabled();
+        Assert.assertFalse(String.format("Expected element [%s] to be disabled but it is enabled", pageKey), isEnabled);
+        LOGGER.info(String.format("\n\tElement [%s] is disabled\n\t", pageKey));
+    }
+
+    @Then("^I see element (\\w+(?: \\w+)*) attribute \"([^\"]*)\" equals \"([^\"]*)\" by (\\w+(?: \\w+)*)$")
+    public void iSeeElementAttributeEquals(String pageKey, String attribute, String expectedValue, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        String actualValue = webDriver.findElement(this.by).getAttribute(attribute);
+        Assert.assertEquals(String.format("Expected attribute [%s] of element [%s] to be [%s] but got [%s]", attribute, pageKey, expectedValue, actualValue), expectedValue, actualValue);
+        LOGGER.info(String.format("\n\tElement [%s] attribute [%s] equals [%s]\n\t", pageKey, attribute, expectedValue));
+    }
+
+    @Then("^I see element count (\\w+(?: \\w+)*) is (\\d+) by (\\w+(?: \\w+)*)$")
+    public void iSeeElementCount(String pageKey, int expectedCount, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        int actualCount = webDriver.findElements(this.by).size();
+        Assert.assertEquals(String.format("Expected [%d] elements for [%s] but found [%d]", expectedCount, pageKey, actualCount), expectedCount, actualCount);
+        LOGGER.info(String.format("\n\tElement [%s] count is [%d] as expected\n\t", pageKey, expectedCount));
+    }
+
+    // --- Alert handling ---
+
+    @Then("^I accept the alert$")
+    public void iAcceptAlert() {
+        webDriver.switchTo().alert().accept();
+        LOGGER.info("\n\tAlert accepted\n\t");
+    }
+
+    @Then("^I dismiss the alert$")
+    public void iDismissAlert() {
+        webDriver.switchTo().alert().dismiss();
+        LOGGER.info("\n\tAlert dismissed\n\t");
+    }
+
+    @Then("^I see alert text equals \"([^\"]*)\"$")
+    public void iSeeAlertTextEquals(String expectedText) {
+        String alertText = webDriver.switchTo().alert().getText();
+        Assert.assertEquals(String.format("Expected alert text [%s] but got [%s]", expectedText, alertText), expectedText, alertText);
+        LOGGER.info(String.format("\n\tAlert text is [%s] as expected\n\t", alertText));
+    }
+
+    @Then("^I type \"([^\"]*)\" into alert$")
+    public void iTypeIntoAlert(String text) {
+        webDriver.switchTo().alert().sendKeys(text);
+        LOGGER.info(String.format("\n\tTyped [%s] into alert\n\t", text));
+    }
+
+    // --- Keyboard actions ---
+
+    @Then("^I press enter on element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iPressEnterOnElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        webDriver.findElement(this.by).sendKeys(Keys.ENTER);
+        LOGGER.info(String.format("\n\tPressed ENTER on element: [%s]\n\t", pageKey));
+    }
+
+    @Then("^I press escape$")
+    public void iPressEscape() {
+        Actions action = new Actions(webDriver);
+        action.sendKeys(Keys.ESCAPE).perform();
+        LOGGER.info("\n\tPressed ESCAPE\n\t");
+    }
+
+    @Then("^I press tab on element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iPressTabOnElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        webDriver.findElement(this.by).sendKeys(Keys.TAB);
+        LOGGER.info(String.format("\n\tPressed TAB on element: [%s]\n\t", pageKey));
+    }
+
+    // --- Scroll and clear ---
+
+    @Then("^I scroll to element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iScrollToElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        WebElement element = webDriver.findElement(this.by);
+        ((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(true);", element);
+        LOGGER.info(String.format("\n\tScrolled to element: [%s]\n\t", pageKey));
+    }
+
+    @Then("^I clear element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iClearElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        webDriver.findElement(this.by).clear();
+        LOGGER.info(String.format("\n\tCleared element: [%s]\n\t", pageKey));
+    }
+
+    // --- iFrame ---
+
+    @Then("^I switch to default content$")
+    public void iSwitchToDefaultContent() {
+        webDriver.switchTo().defaultContent();
+        LOGGER.info("\n\tSwitched to default content\n\t");
+    }
+
+    // --- Form submission ---
+
+    @Then("^I submit element (\\w+(?: \\w+)*) by (\\w+(?: \\w+)*)$")
+    public void iSubmitElement(String pageKey, String selectKey) {
+        JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
+        String pageElement = pageElementObject.get(pageKey).getAsString();
+        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        webDriver.findElement(this.by).submit();
+        LOGGER.info(String.format("\n\tSubmitted form via element: [%s]\n\t", pageKey));
+    }
 
 
 
