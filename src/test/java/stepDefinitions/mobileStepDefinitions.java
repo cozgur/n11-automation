@@ -40,6 +40,11 @@ public class mobileStepDefinitions {
 
     // --- Driver setup ---
 
+    @Given("^I use mobile driver from config$")
+    public void useMobileDriverFromConfig() {
+        mobileDriverManager.createDriverFromConfig();
+    }
+
     @Given("^I use (android|ios) mobile driver on device \"([^\"]*)\" version \"([^\"]*)\"$")
     public void useMobileDriver(String platform, String deviceName, String platformVersion) {
         mobileDriverManager.createDriver(platform, deviceName, platformVersion);

@@ -1,10 +1,13 @@
 package resources.config.driver;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import resources.config.utils.jsonParser;
 
 import static resources.logger.LoggerManagement.LOGGER;
 
@@ -29,6 +32,70 @@ public class mobileDriverManager {
             LOGGER.info("\n\tMobile driver quit and removed from thread\n\t");
         }
         driverThread.remove();
+    }
+
+    /**
+     * Creates a driver from -D system properties and apps.json config.
+     *
+     * Required:
+     *   -Dplatform=android|ios
+     *   -Dapp=cloneai|n11|...        (key in apps.json)
+     *
+     * Optional overrides:
+     *   -DdeviceName=Pixel 6         (overrides apps.json default)
+     *   -DplatformVersion=13.0       (overrides apps.json default)
+     *   -DappiumUrl=http://...       (overrides default localhost)
+     */
+    public static AppiumDriver<MobileElement> createDriverFromConfig() {
+        String platform = System.getProperty("platform");
+        String appName = System.getProperty("app");
+
+        if (platform == null || platform.isEmpty()) {
+            throw new IllegalArgumentException("System property -Dplatform is required (android|ios)");
+        }
+        if (appName == null || appName.isEmpty()) {
+            throw new IllegalArgumentException("System property -Dapp is required (e.g. -Dapp=cloneai)");
+        }
+
+        JsonObject appsConfig = jsonParser.main("apps");
+        JsonObject appConfig = appsConfig.getAsJsonObject(appName);
+        if (appConfig == null) {
+            throw new IllegalArgumentException("App [" + appName + "] not found in apps.json. " +
+                    "Available: " + appsConfig.keySet());
+        }
+
+        JsonObject platformConfig = appConfig.getAsJsonObject(platform.toLowerCase());
+        if (platformConfig == null) {
+            throw new IllegalArgumentException("Platform [" + platform + "] not found for app [" + appName + "] in apps.json. " +
+                    "Available: " + appConfig.keySet());
+        }
+
+        DesiredCapabilities caps = new DesiredCapabilities();
+        for (Map.Entry<String, JsonElement> entry : platformConfig.entrySet()) {
+            caps.setCapability(entry.getKey(), entry.getValue().getAsString());
+        }
+
+        String deviceNameOverride = System.getProperty("deviceName");
+        if (deviceNameOverride != null && !deviceNameOverride.isEmpty()) {
+            caps.setCapability("deviceName", deviceNameOverride);
+        }
+
+        String versionOverride = System.getProperty("platformVersion");
+        if (versionOverride != null && !versionOverride.isEmpty()) {
+            caps.setCapability("platformVersion", versionOverride);
+        }
+
+        String appPathOverride = System.getProperty("appPath");
+        if (appPathOverride != null && !appPathOverride.isEmpty()) {
+            caps.setCapability("app", appPathOverride);
+        }
+
+        String appiumUrl = System.getProperty("appiumUrl", DEFAULT_APPIUM_URL);
+
+        LOGGER.info(String.format("\n\t[Thread-%d] Creating driver from config: app=[%s] platform=[%s] device=[%s]\n\t",
+                Thread.currentThread().getId(), appName, platform, caps.getCapability("deviceName")));
+
+        return initDriver(platform, caps, appiumUrl);
     }
 
     public static AppiumDriver<MobileElement> createDriver(String platform, String deviceName,
