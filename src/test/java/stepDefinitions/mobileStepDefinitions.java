@@ -23,36 +23,60 @@ import resources.config.driver.mobileDriverManager;
 import resources.config.driver.selectDecision;
 import resources.config.utils.jsonParser;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import static resources.logger.LoggerManagement.LOGGER;
 
 public class mobileStepDefinitions {
 
-    private AppiumDriver<MobileElement> mobileDriver;
     private JsonObject pageObject;
     private By by;
+
+    private AppiumDriver<MobileElement> getDriver() {
+        return mobileDriverManager.getDriver();
+    }
 
     // --- Driver setup ---
 
     @Given("^I use (android|ios) mobile driver on device \"([^\"]*)\" version \"([^\"]*)\"$")
     public void useMobileDriver(String platform, String deviceName, String platformVersion) {
-        mobileDriver = mobileDriverManager.createDriver(platform, deviceName, platformVersion);
-        LOGGER.info(String.format("\n\tMobile driver created: [%s] device [%s] version [%s]\n\t",
-                platform, deviceName, platformVersion));
+        mobileDriverManager.createDriver(platform, deviceName, platformVersion);
+        LOGGER.info(String.format("\n\t[Thread-%d] Mobile driver created: [%s] device [%s] version [%s]\n\t",
+                Thread.currentThread().getId(), platform, deviceName, platformVersion));
     }
 
     @Given("^I use (android|ios) mobile driver on device \"([^\"]*)\" version \"([^\"]*)\" with app \"([^\"]*)\"$")
     public void useMobileDriverWithApp(String platform, String deviceName, String platformVersion, String app) {
-        mobileDriver = mobileDriverManager.createDriverWithApp(platform, deviceName, platformVersion, app);
-        LOGGER.info(String.format("\n\tMobile driver created: [%s] device [%s] app [%s]\n\t",
-                platform, deviceName, app));
+        mobileDriverManager.createDriverWithApp(platform, deviceName, platformVersion, app);
+        LOGGER.info(String.format("\n\t[Thread-%d] Mobile driver created: [%s] device [%s] app [%s]\n\t",
+                Thread.currentThread().getId(), platform, deviceName, app));
     }
 
     @Given("^I use (android|ios) mobile driver on device \"([^\"]*)\" version \"([^\"]*)\" at \"([^\"]*)\"$")
     public void useMobileDriverAtUrl(String platform, String deviceName, String platformVersion, String appiumUrl) {
-        mobileDriver = mobileDriverManager.createDriver(platform, deviceName, platformVersion, appiumUrl);
-        LOGGER.info(String.format("\n\tMobile driver created: [%s] at [%s]\n\t", platform, appiumUrl));
+        mobileDriverManager.createDriver(platform, deviceName, platformVersion, appiumUrl);
+        LOGGER.info(String.format("\n\t[Thread-%d] Mobile driver created: [%s] at [%s]\n\t",
+                Thread.currentThread().getId(), platform, appiumUrl));
+    }
+
+    @Given("^I use (android|ios) mobile driver with capabilities$")
+    public void useMobileDriverWithCapabilities(String platform, DataTable table) {
+        Map<String, String> capabilities = new HashMap<>();
+        for (DataTableRow row : table.getGherkinRows()) {
+            capabilities.put(row.getCells().get(0), row.getCells().get(1));
+        }
+
+        String appiumUrl = capabilities.remove("appiumUrl");
+        if (appiumUrl != null) {
+            mobileDriverManager.createDriverWithCapabilities(platform, capabilities, appiumUrl);
+        } else {
+            mobileDriverManager.createDriverWithCapabilities(platform, capabilities);
+        }
+
+        LOGGER.info(String.format("\n\t[Thread-%d] Mobile driver created: [%s] with capabilities %s\n\t",
+                Thread.currentThread().getId(), platform, capabilities));
     }
 
     @When("^I open mobile (\\w+(?: \\w+)*) page$")
@@ -60,41 +84,38 @@ public class mobileStepDefinitions {
         JsonObject jsonObject = jsonParser.main("pages");
         this.pageObject = jsonObject.get(flowKey).getAsJsonObject();
         String urlString = this.pageObject.get("url").getAsString();
-        mobileDriver.get(urlString);
+        getDriver().get(urlString);
         LOGGER.info(String.format("\n\tMobile navigated to: %s\n\t", urlString));
     }
 
     @After("@mobile")
     public void afterMobileScenario(Scenario scenario) {
-        if (mobileDriver != null) {
-            mobileDriver.quit();
-            LOGGER.info("\n\tMobile driver quit\n\t");
-        }
+        mobileDriverManager.removeDriver();
     }
 
     // --- App lifecycle ---
 
     @When("^I launch the mobile app$")
     public void iLaunchApp() {
-        mobileDriver.launchApp();
+        getDriver().launchApp();
         LOGGER.info("\n\tMobile app launched\n\t");
     }
 
     @When("^I close the mobile app$")
     public void iCloseApp() {
-        mobileDriver.closeApp();
+        getDriver().closeApp();
         LOGGER.info("\n\tMobile app closed\n\t");
     }
 
     @When("^I reset the mobile app$")
     public void iResetApp() {
-        mobileDriver.resetApp();
+        getDriver().resetApp();
         LOGGER.info("\n\tMobile app reset\n\t");
     }
 
     @When("^I send the mobile app to background for (\\d+) seconds$")
     public void iBackgroundApp(int seconds) {
-        mobileDriver.runAppInBackground(seconds);
+        getDriver().runAppInBackground(seconds);
         LOGGER.info(String.format("\n\tMobile app sent to background for [%d] seconds\n\t", seconds));
     }
 
@@ -105,8 +126,8 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        WebElement element = mobileDriver.findElement(this.by);
-        new TouchAction(mobileDriver).tap(element).perform();
+        WebElement element = getDriver().findElement(this.by);
+        new TouchAction(getDriver()).tap(element).perform();
         LOGGER.info(String.format("\n\tTapped element: [%s]\n\t", pageKey));
     }
 
@@ -115,26 +136,26 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        WebElement element = mobileDriver.findElement(this.by);
-        new TouchAction(mobileDriver).longPress(element).release().perform();
+        WebElement element = getDriver().findElement(this.by);
+        new TouchAction(getDriver()).longPress(element).release().perform();
         LOGGER.info(String.format("\n\tLong pressed element: [%s]\n\t", pageKey));
     }
 
     @Then("^I tap on coordinates (\\d+) (\\d+)$")
     public void iTapOnCoordinates(int x, int y) {
-        new TouchAction(mobileDriver).tap(x, y).perform();
+        new TouchAction(getDriver()).tap(x, y).perform();
         LOGGER.info(String.format("\n\tTapped on coordinates: [%d, %d]\n\t", x, y));
     }
 
     @Then("^I long press on coordinates (\\d+) (\\d+)$")
     public void iLongPressOnCoordinates(int x, int y) {
-        new TouchAction(mobileDriver).longPress(x, y).release().perform();
+        new TouchAction(getDriver()).longPress(x, y).release().perform();
         LOGGER.info(String.format("\n\tLong pressed on coordinates: [%d, %d]\n\t", x, y));
     }
 
     @Then("^I swipe (up|down|left|right)$")
     public void iSwipe(String direction) {
-        Dimension size = mobileDriver.manage().window().getSize();
+        Dimension size = getDriver().manage().window().getSize();
         int centerX = size.width / 2;
         int centerY = size.height / 2;
 
@@ -169,7 +190,7 @@ public class mobileStepDefinitions {
                 throw new IllegalArgumentException("Invalid swipe direction: " + direction);
         }
 
-        mobileDriver.swipe(startX, startY, endX, endY, 500);
+        getDriver().swipe(startX, startY, endX, endY, 500);
         LOGGER.info(String.format("\n\tSwiped [%s]\n\t", direction));
     }
 
@@ -186,8 +207,8 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        WebElement element = mobileDriver.findElement(this.by);
-        mobileDriver.pinch(element);
+        WebElement element = getDriver().findElement(this.by);
+        getDriver().pinch(element);
         LOGGER.info(String.format("\n\tPinched element: [%s]\n\t", pageKey));
     }
 
@@ -196,8 +217,8 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        WebElement element = mobileDriver.findElement(this.by);
-        mobileDriver.zoom(element);
+        WebElement element = getDriver().findElement(this.by);
+        getDriver().zoom(element);
         LOGGER.info(String.format("\n\tZoomed element: [%s]\n\t", pageKey));
     }
 
@@ -205,24 +226,24 @@ public class mobileStepDefinitions {
 
     @Then("^I hide the keyboard$")
     public void iHideKeyboard() {
-        mobileDriver.hideKeyboard();
+        getDriver().hideKeyboard();
         LOGGER.info("\n\tKeyboard hidden\n\t");
     }
 
     @Then("^I rotate to (landscape|portrait)$")
     public void iRotate(String orientation) {
         if (orientation.equalsIgnoreCase("landscape")) {
-            mobileDriver.rotate(ScreenOrientation.LANDSCAPE);
+            getDriver().rotate(ScreenOrientation.LANDSCAPE);
         } else {
-            mobileDriver.rotate(ScreenOrientation.PORTRAIT);
+            getDriver().rotate(ScreenOrientation.PORTRAIT);
         }
         LOGGER.info(String.format("\n\tRotated to [%s]\n\t", orientation));
     }
 
     @Then("^I press the back button$")
     public void iPressBackButton() {
-        if (mobileDriver instanceof AndroidDriver) {
-            ((AndroidDriver) mobileDriver).pressKeyCode(AndroidKeyCode.BACK);
+        if (getDriver() instanceof AndroidDriver) {
+            ((AndroidDriver) getDriver()).pressKeyCode(AndroidKeyCode.BACK);
             LOGGER.info("\n\tPressed back button\n\t");
         } else {
             LOGGER.info("\n\tBack button is only available on Android\n\t");
@@ -231,8 +252,8 @@ public class mobileStepDefinitions {
 
     @Then("^I press the home button$")
     public void iPressHomeButton() {
-        if (mobileDriver instanceof AndroidDriver) {
-            ((AndroidDriver) mobileDriver).pressKeyCode(AndroidKeyCode.HOME);
+        if (getDriver() instanceof AndroidDriver) {
+            ((AndroidDriver) getDriver()).pressKeyCode(AndroidKeyCode.HOME);
             LOGGER.info("\n\tPressed home button\n\t");
         } else {
             LOGGER.info("\n\tHome button is only available on Android\n\t");
@@ -241,8 +262,8 @@ public class mobileStepDefinitions {
 
     @Then("^I press the enter key$")
     public void iPressEnterKey() {
-        if (mobileDriver instanceof AndroidDriver) {
-            ((AndroidDriver) mobileDriver).pressKeyCode(AndroidKeyCode.ENTER);
+        if (getDriver() instanceof AndroidDriver) {
+            ((AndroidDriver) getDriver()).pressKeyCode(AndroidKeyCode.ENTER);
             LOGGER.info("\n\tPressed enter key\n\t");
         } else {
             LOGGER.info("\n\tAndroid key code is only available on Android\n\t");
@@ -251,13 +272,13 @@ public class mobileStepDefinitions {
 
     @Then("^I lock the device$")
     public void iLockDevice() {
-        mobileDriver.lockScreen(0);
+        getDriver().lockScreen(0);
         LOGGER.info("\n\tDevice locked\n\t");
     }
 
     @Then("^I lock the device for (\\d+) seconds$")
     public void iLockDeviceForSeconds(int seconds) {
-        mobileDriver.lockScreen(seconds);
+        getDriver().lockScreen(seconds);
         LOGGER.info(String.format("\n\tDevice locked for [%d] seconds\n\t", seconds));
     }
 
@@ -265,16 +286,16 @@ public class mobileStepDefinitions {
 
     @Then("^I switch to native context$")
     public void iSwitchToNativeContext() {
-        mobileDriver.context("NATIVE_APP");
+        getDriver().context("NATIVE_APP");
         LOGGER.info("\n\tSwitched to NATIVE_APP context\n\t");
     }
 
     @Then("^I switch to webview context$")
     public void iSwitchToWebviewContext() {
-        Set<String> contexts = mobileDriver.getContextHandles();
+        Set<String> contexts = getDriver().getContextHandles();
         for (String context : contexts) {
             if (context.contains("WEBVIEW")) {
-                mobileDriver.context(context);
+                getDriver().context(context);
                 LOGGER.info(String.format("\n\tSwitched to context: [%s]\n\t", context));
                 return;
             }
@@ -284,7 +305,7 @@ public class mobileStepDefinitions {
 
     @Then("^I switch to context \"([^\"]*)\"$")
     public void iSwitchToContext(String contextName) {
-        mobileDriver.context(contextName);
+        getDriver().context(contextName);
         LOGGER.info(String.format("\n\tSwitched to context: [%s]\n\t", contextName));
     }
 
@@ -295,7 +316,7 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        mobileDriver.findElement(this.by).sendKeys(text);
+        getDriver().findElement(this.by).sendKeys(text);
         LOGGER.info(String.format("\n\tTyped [%s] on mobile element: [%s]\n\t", text, pageKey));
     }
 
@@ -304,7 +325,7 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        mobileDriver.findElement(this.by).clear();
+        getDriver().findElement(this.by).clear();
         LOGGER.info(String.format("\n\tCleared mobile element: [%s]\n\t", pageKey));
     }
 
@@ -318,8 +339,8 @@ public class mobileStepDefinitions {
             String pageElement = pageElementObject.get(key).getAsString();
             this.by = selectDecision.main(this.by, selectKey, pageElement);
 
-            mobileDriver.findElement(this.by).clear();
-            mobileDriver.findElement(this.by).sendKeys(value);
+            getDriver().findElement(this.by).clear();
+            getDriver().findElement(this.by).sendKeys(value);
 
             LOGGER.info(String.format("\n\tMobile filling key: [%s] with value: [%s]\n\t", key, value));
         }
@@ -334,8 +355,8 @@ public class mobileStepDefinitions {
             String pageElement = pageElementObject.get(key).getAsString();
             this.by = selectDecision.main(this.by, selectKey, pageElement);
 
-            WebElement element = mobileDriver.findElement(this.by);
-            new TouchAction(mobileDriver).tap(element).perform();
+            WebElement element = getDriver().findElement(this.by);
+            new TouchAction(getDriver()).tap(element).perform();
 
             LOGGER.info(String.format("\n\tMobile tapped element: [%s]\n\t", key));
         }
@@ -345,14 +366,14 @@ public class mobileStepDefinitions {
 
     @Then("^I tap element with accessibility id \"([^\"]*)\"$")
     public void iTapByAccessibilityId(String accessibilityId) {
-        WebElement element = mobileDriver.findElementByAccessibilityId(accessibilityId);
-        new TouchAction(mobileDriver).tap(element).perform();
+        WebElement element = getDriver().findElementByAccessibilityId(accessibilityId);
+        new TouchAction(getDriver()).tap(element).perform();
         LOGGER.info(String.format("\n\tTapped element with accessibility ID: [%s]\n\t", accessibilityId));
     }
 
     @Then("^I type \"([^\"]*)\" on element with accessibility id \"([^\"]*)\"$")
     public void iTypeByAccessibilityId(String text, String accessibilityId) {
-        mobileDriver.findElementByAccessibilityId(accessibilityId).sendKeys(text);
+        getDriver().findElementByAccessibilityId(accessibilityId).sendKeys(text);
         LOGGER.info(String.format("\n\tTyped [%s] on element with accessibility ID: [%s]\n\t", text, accessibilityId));
     }
 
@@ -363,7 +384,7 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        boolean isDisplayed = mobileDriver.findElement(this.by).isDisplayed();
+        boolean isDisplayed = getDriver().findElement(this.by).isDisplayed();
         Assert.assertTrue(String.format("Expected mobile element [%s] to be displayed", pageKey), isDisplayed);
         LOGGER.info(String.format("\n\tMobile element [%s] is displayed\n\t", pageKey));
     }
@@ -373,7 +394,7 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        String actualText = mobileDriver.findElement(this.by).getText();
+        String actualText = getDriver().findElement(this.by).getText();
         Assert.assertEquals(String.format("Expected text [%s] but got [%s] for element [%s]",
                 expectedText, actualText, pageKey), expectedText, actualText);
         LOGGER.info(String.format("\n\tMobile element [%s] text equals [%s]\n\t", pageKey, expectedText));
@@ -384,7 +405,7 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        String actualText = mobileDriver.findElement(this.by).getText();
+        String actualText = getDriver().findElement(this.by).getText();
         Assert.assertTrue(String.format("Expected text of element [%s] to contain [%s] but got [%s]",
                 pageKey, expectedText, actualText), actualText.contains(expectedText));
         LOGGER.info(String.format("\n\tMobile element [%s] text contains [%s]\n\t", pageKey, expectedText));
@@ -395,7 +416,7 @@ public class mobileStepDefinitions {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = selectDecision.main(this.by, selectKey, pageElement);
-        String actualValue = mobileDriver.findElement(this.by).getAttribute(attribute);
+        String actualValue = getDriver().findElement(this.by).getAttribute(attribute);
         Assert.assertEquals(String.format("Expected attribute [%s] of element [%s] to be [%s] but got [%s]",
                 attribute, pageKey, expectedValue, actualValue), expectedValue, actualValue);
         LOGGER.info(String.format("\n\tMobile element [%s] attribute [%s] equals [%s]\n\t",
@@ -404,7 +425,7 @@ public class mobileStepDefinitions {
 
     @Then("^I see mobile element with accessibility id \"([^\"]*)\" is displayed$")
     public void iSeeMobileElementByAccessibilityIdDisplayed(String accessibilityId) {
-        WebElement element = mobileDriver.findElementByAccessibilityId(accessibilityId);
+        WebElement element = getDriver().findElementByAccessibilityId(accessibilityId);
         Assert.assertTrue(String.format("Expected element with accessibility ID [%s] to be displayed", accessibilityId),
                 element.isDisplayed());
         LOGGER.info(String.format("\n\tMobile element with accessibility ID [%s] is displayed\n\t", accessibilityId));
@@ -414,27 +435,27 @@ public class mobileStepDefinitions {
 
     @Then("^I install app \"([^\"]*)\"$")
     public void iInstallApp(String appPath) {
-        mobileDriver.installApp(appPath);
+        getDriver().installApp(appPath);
         LOGGER.info(String.format("\n\tInstalled app: [%s]\n\t", appPath));
     }
 
     @Then("^I remove app \"([^\"]*)\"$")
     public void iRemoveApp(String bundleId) {
-        mobileDriver.removeApp(bundleId);
+        getDriver().removeApp(bundleId);
         LOGGER.info(String.format("\n\tRemoved app: [%s]\n\t", bundleId));
     }
 
     @Then("^I see app \"([^\"]*)\" is installed$")
     public void iSeeAppInstalled(String bundleId) {
         Assert.assertTrue(String.format("Expected app [%s] to be installed", bundleId),
-                mobileDriver.isAppInstalled(bundleId));
+                getDriver().isAppInstalled(bundleId));
         LOGGER.info(String.format("\n\tApp [%s] is installed\n\t", bundleId));
     }
 
     @Then("^I see app \"([^\"]*)\" is not installed$")
     public void iSeeAppNotInstalled(String bundleId) {
         Assert.assertFalse(String.format("Expected app [%s] to NOT be installed", bundleId),
-                mobileDriver.isAppInstalled(bundleId));
+                getDriver().isAppInstalled(bundleId));
         LOGGER.info(String.format("\n\tApp [%s] is not installed\n\t", bundleId));
     }
 
@@ -442,7 +463,7 @@ public class mobileStepDefinitions {
 
     @Then("^I see orientation is (landscape|portrait)$")
     public void iSeeOrientation(String expectedOrientation) {
-        ScreenOrientation current = mobileDriver.getOrientation();
+        ScreenOrientation current = getDriver().getOrientation();
         Assert.assertEquals(String.format("Expected orientation [%s] but got [%s]",
                 expectedOrientation, current.value()), expectedOrientation.toLowerCase(), current.value().toLowerCase());
         LOGGER.info(String.format("\n\tOrientation is [%s] as expected\n\t", expectedOrientation));
@@ -452,8 +473,8 @@ public class mobileStepDefinitions {
 
     @Then("^I open notifications$")
     public void iOpenNotifications() {
-        if (mobileDriver instanceof AndroidDriver) {
-            ((AndroidDriver) mobileDriver).openNotifications();
+        if (getDriver() instanceof AndroidDriver) {
+            ((AndroidDriver) getDriver()).openNotifications();
             LOGGER.info("\n\tNotifications opened\n\t");
         } else {
             LOGGER.info("\n\tOpen notifications is only available on Android\n\t");
@@ -462,8 +483,8 @@ public class mobileStepDefinitions {
 
     @Then("^I see current activity is \"([^\"]*)\"$")
     public void iSeeCurrentActivity(String expectedActivity) {
-        if (mobileDriver instanceof AndroidDriver) {
-            String currentActivity = ((AndroidDriver) mobileDriver).currentActivity();
+        if (getDriver() instanceof AndroidDriver) {
+            String currentActivity = ((AndroidDriver) getDriver()).currentActivity();
             Assert.assertEquals(String.format("Expected activity [%s] but got [%s]",
                     expectedActivity, currentActivity), expectedActivity, currentActivity);
             LOGGER.info(String.format("\n\tCurrent activity is [%s] as expected\n\t", currentActivity));

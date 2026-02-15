@@ -10,10 +10,26 @@ import static resources.logger.LoggerManagement.LOGGER;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Map;
 
 public class mobileDriverManager {
 
     private static final String DEFAULT_APPIUM_URL = "http://127.0.0.1:4723/wd/hub";
+
+    private static final ThreadLocal<AppiumDriver<MobileElement>> driverThread = new ThreadLocal<>();
+
+    public static AppiumDriver<MobileElement> getDriver() {
+        return driverThread.get();
+    }
+
+    public static void removeDriver() {
+        AppiumDriver<MobileElement> driver = driverThread.get();
+        if (driver != null) {
+            driver.quit();
+            LOGGER.info("\n\tMobile driver quit and removed from thread\n\t");
+        }
+        driverThread.remove();
+    }
 
     public static AppiumDriver<MobileElement> createDriver(String platform, String deviceName,
             String platformVersion, String appiumUrl) {
@@ -22,27 +38,7 @@ public class mobileDriverManager {
         caps.setCapability("deviceName", deviceName);
         caps.setCapability("platformVersion", platformVersion);
 
-        try {
-            URL url = new URL(appiumUrl);
-
-            if (platform.equalsIgnoreCase("android")) {
-                caps.setCapability("platformName", "Android");
-                LOGGER.info(String.format("\n\tCreating Android driver for device [%s] version [%s]\n\t",
-                        deviceName, platformVersion));
-                return new AndroidDriver<>(url, caps);
-
-            } else if (platform.equalsIgnoreCase("ios")) {
-                caps.setCapability("platformName", "iOS");
-                caps.setCapability("automationName", "XCUITest");
-                LOGGER.info(String.format("\n\tCreating iOS driver for device [%s] version [%s]\n\t",
-                        deviceName, platformVersion));
-                return new IOSDriver<>(url, caps);
-            }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Invalid Appium server URL: " + appiumUrl, e);
-        }
-
-        throw new IllegalArgumentException("Unsupported platform: " + platform);
+        return initDriver(platform, caps, appiumUrl);
     }
 
     public static AppiumDriver<MobileElement> createDriver(String platform, String deviceName,
@@ -58,31 +54,59 @@ public class mobileDriverManager {
         caps.setCapability("platformVersion", platformVersion);
         caps.setCapability("app", app);
 
-        try {
-            URL url = new URL(appiumUrl);
-
-            if (platform.equalsIgnoreCase("android")) {
-                caps.setCapability("platformName", "Android");
-                LOGGER.info(String.format("\n\tCreating Android driver with app [%s] on device [%s]\n\t",
-                        app, deviceName));
-                return new AndroidDriver<>(url, caps);
-
-            } else if (platform.equalsIgnoreCase("ios")) {
-                caps.setCapability("platformName", "iOS");
-                caps.setCapability("automationName", "XCUITest");
-                LOGGER.info(String.format("\n\tCreating iOS driver with app [%s] on device [%s]\n\t",
-                        app, deviceName));
-                return new IOSDriver<>(url, caps);
-            }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Invalid Appium server URL: " + appiumUrl, e);
-        }
-
-        throw new IllegalArgumentException("Unsupported platform: " + platform);
+        return initDriver(platform, caps, appiumUrl);
     }
 
     public static AppiumDriver<MobileElement> createDriverWithApp(String platform, String deviceName,
             String platformVersion, String app) {
         return createDriverWithApp(platform, deviceName, platformVersion, app, DEFAULT_APPIUM_URL);
+    }
+
+    public static AppiumDriver<MobileElement> createDriverWithCapabilities(String platform,
+            Map<String, String> capabilities, String appiumUrl) {
+
+        DesiredCapabilities caps = new DesiredCapabilities();
+        for (Map.Entry<String, String> entry : capabilities.entrySet()) {
+            caps.setCapability(entry.getKey(), entry.getValue());
+        }
+
+        return initDriver(platform, caps, appiumUrl);
+    }
+
+    public static AppiumDriver<MobileElement> createDriverWithCapabilities(String platform,
+            Map<String, String> capabilities) {
+        return createDriverWithCapabilities(platform, capabilities, DEFAULT_APPIUM_URL);
+    }
+
+    private static AppiumDriver<MobileElement> initDriver(String platform, DesiredCapabilities caps,
+            String appiumUrl) {
+
+        AppiumDriver<MobileElement> driver;
+
+        try {
+            URL url = new URL(appiumUrl);
+
+            if (platform.equalsIgnoreCase("android")) {
+                caps.setCapability("platformName", "Android");
+                driver = new AndroidDriver<>(url, caps);
+                LOGGER.info(String.format("\n\t[Thread-%d] Android driver created for device [%s]\n\t",
+                        Thread.currentThread().getId(), caps.getCapability("deviceName")));
+
+            } else if (platform.equalsIgnoreCase("ios")) {
+                caps.setCapability("platformName", "iOS");
+                caps.setCapability("automationName", "XCUITest");
+                driver = new IOSDriver<>(url, caps);
+                LOGGER.info(String.format("\n\t[Thread-%d] iOS driver created for device [%s]\n\t",
+                        Thread.currentThread().getId(), caps.getCapability("deviceName")));
+
+            } else {
+                throw new IllegalArgumentException("Unsupported platform: " + platform);
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Invalid Appium server URL: " + appiumUrl, e);
+        }
+
+        driverThread.set(driver);
+        return driver;
     }
 }
