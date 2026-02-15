@@ -1,0 +1,12 @@
+# iOS-specific configuration
+platform: ios
+
+capabilities:
+  platformName: iOS
+  automationName: XCUITest
+  noReset: true
+  fullReset: false
+
+defaults:
+  deviceName: "iPhone 14"
+  platformVersion: "16.0"
