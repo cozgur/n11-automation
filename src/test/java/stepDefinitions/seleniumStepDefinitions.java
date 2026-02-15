@@ -45,12 +45,15 @@ public class seleniumStepDefinitions {
     public void afterScenerio(Scenario scenerio){
         if(scenerio.isFailed()){
             ++failedSceneriosCounter;
-        }else
-            webDriver.quit();
+        }
 
         String result = scenerio.isFailed() ? "with errors" : "succesfully";
         LOGGER.info(String.format("\n\t[%d] > Scenerio [%s] finished %s\t", sceneriosCounter,scenerio.getName(),result));
         LOGGER.info(String.format("\n\t%d of %d scenerios failed so far \t ",failedSceneriosCounter, sceneriosCounter));
+
+        if(webDriver != null){
+            webDriver.quit();
+        }
     }
 
     @Given("^I use (\\w+(?: \\w+)*) driver")
@@ -83,39 +86,29 @@ public class seleniumStepDefinitions {
     @Then("^I see webpage title equals \"([^\"]*)\"$")
     public void webpageTitleEquals(String expectedHeader){
         String currentHeader = webDriver.getTitle();
-
-        if(expectedHeader.equals(currentHeader)) {
-            LOGGER.info(String.format("\n\tThe webpage title is [%s] as expected [%s]\n\t", currentHeader, expectedHeader));
-        }
-
+        Assert.assertEquals(String.format("Expected webpage title [%s] but got [%s]", expectedHeader, currentHeader), expectedHeader, currentHeader);
+        LOGGER.info(String.format("\n\tThe webpage title is [%s] as expected [%s]\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title contains \"([^\"]*)\"$")
     public void webpageTitleContains(String expectedHeader){
         String currentHeader = webDriver.getTitle();
-
-        if(expectedHeader.contains(currentHeader)){
-            LOGGER.info(String.format("\n\tThe webpage title is [%s] contains [%s]\n\t", currentHeader, expectedHeader));
-        }
+        Assert.assertTrue(String.format("Expected webpage title [%s] to contain [%s]", currentHeader, expectedHeader), currentHeader.contains(expectedHeader));
+        LOGGER.info(String.format("\n\tThe webpage title [%s] contains [%s]\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title does not equal \"([^\"]*)\"$")
     public void webpageTitleNotEqual(String expectedHeader){
         String currentHeader = webDriver.getTitle();
-
-        if(!expectedHeader.equals(currentHeader))
-            throw new java.lang.AssertionError(String.format("\n\tThe webpage title is NOT [%s] as expected [%s]\n\t", currentHeader, expectedHeader));
-
+        Assert.assertNotEquals(String.format("Expected webpage title to NOT equal [%s] but it does", expectedHeader), expectedHeader, currentHeader);
+        LOGGER.info(String.format("\n\tThe webpage title [%s] does not equal [%s] as expected\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title does not contain \"([^\"]*)\"$")
     public void webpageTitleNotContain(String expectedHeader){
         String currentHeader = webDriver.getTitle();
-
-
-        if(!expectedHeader.contains(currentHeader)){
-            throw new java.lang.AssertionError(String.format("\n\tThe webpage title is NOT [%s] as expected [%s]\n\t", currentHeader, expectedHeader));
-        }
+        Assert.assertFalse(String.format("Expected webpage title [%s] to NOT contain [%s] but it does", currentHeader, expectedHeader), currentHeader.contains(expectedHeader));
+        LOGGER.info(String.format("\n\tThe webpage title [%s] does not contain [%s] as expected\n\t", currentHeader, expectedHeader));
     }
 
 
@@ -211,10 +204,10 @@ public class seleniumStepDefinitions {
 
 
     @Then("^I switch the iFrame \"([^\"]*)\"$")
-    public void iSwitchFrame() {
-        WebElement iframe = webDriver.findElement(By.tagName("iframe"));
+    public void iSwitchFrame(String frameIdentifier) {
+        WebElement iframe = webDriver.findElement(By.xpath(frameIdentifier));
         webDriver.switchTo().frame(iframe);
-        LOGGER.info(String.format("\n\tiFrame switched: %s\n\t", iframe));
+        LOGGER.info(String.format("\n\tiFrame switched: %s\n\t", frameIdentifier));
 
     }
 
