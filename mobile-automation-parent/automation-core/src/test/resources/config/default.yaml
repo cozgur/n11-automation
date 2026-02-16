@@ -1,0 +1,13 @@
+appium:
+  url: "http://127.0.0.1:4723"
+
+timeout:
+  implicit: 10
+  explicit: 15
+
+retry:
+  max: 2
+  delayMs: 1000
+
+screenshot:
+  onFailure: true
