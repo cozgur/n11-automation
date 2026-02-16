@@ -1,0 +1,12 @@
+# Android-specific configuration
+platform: android
+
+capabilities:
+  platformName: Android
+  automationName: UiAutomator2
+  noReset: true
+  fullReset: false
+
+defaults:
+  deviceName: "Pixel 6"
+  platformVersion: "13.0"

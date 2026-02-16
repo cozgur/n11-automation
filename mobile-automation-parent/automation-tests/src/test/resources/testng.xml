@@ -1,0 +1,20 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Mobile Automation Suite" parallel="tests" thread-count="2">
+
+    <listeners>
+        <listener class-name="com.company.qa.core.retry.RetryListener"/>
+    </listeners>
+
+    <test name="CloneAI Mobile Tests">
+        <classes>
+            <class name="com.company.qa.tests.runners.MobileTestRunner"/>
+        </classes>
+    </test>
+
+    <test name="Web Tests">
+        <classes>
+            <class name="com.company.qa.tests.runners.TestRunner"/>
+        </classes>
+    </test>
+
+</suite>

@@ -1,0 +1,32 @@
+{
+  "cloneai": {
+    "android": {
+      "app": "/path/to/cloneai-debug.apk",
+      "appPackage": "com.cloneai.app",
+      "appActivity": ".MainActivity",
+      "deviceName": "Pixel 6",
+      "platformVersion": "13.0"
+    },
+    "ios": {
+      "app": "/path/to/cloneai.ipa",
+      "bundleId": "com.cloneai.app",
+      "deviceName": "iPhone 14",
+      "platformVersion": "16.0"
+    }
+  },
+  "n11": {
+    "android": {
+      "app": "/path/to/n11-debug.apk",
+      "appPackage": "com.n11.app",
+      "appActivity": ".MainActivity",
+      "deviceName": "Pixel 6",
+      "platformVersion": "13.0"
+    },
+    "ios": {
+      "app": "/path/to/n11.ipa",
+      "bundleId": "com.n11.app",
+      "deviceName": "iPhone 14",
+      "platformVersion": "16.0"
+    }
+  }
+}

@@ -1,268 +1,194 @@
-package stepDefinitions;
-
+package com.company.qa.tests.steps;
 
 import com.google.gson.JsonObject;
-import cucumber.api.DataTable;
-import cucumber.api.Scenario;
-import cucumber.api.java.After;
-import cucumber.api.java.Before;
-import cucumber.api.java.en.And;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
-import cucumber.api.java.en.When;
-import gherkin.formatter.model.DataTableRow;
-import org.junit.Assert;
+import com.company.qa.core.driver.BrowserManager;
+import com.company.qa.core.driver.SelectDecision;
+import com.company.qa.core.util.JsonParser;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import org.openqa.selenium.*;
-import static resources.logger.LoggerManagement.LOGGER;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Select;
-import resources.config.driver.selectDecision;
-import resources.config.utils.jsonParser;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-public class seleniumStepDefinitions {
+import static com.company.qa.core.util.LogManager.LOGGER;
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class WebStepDefinitions {
 
     private WebDriver webDriver;
-    private String osValue = System.getProperty("os.name");
     private JsonObject pageObject;
-    private static int sceneriosCounter = 0;
-    private static int failedSceneriosCounter = 0;
     private By by;
 
-    public seleniumStepDefinitions(){
-
-
-    }
-
-    @Before
-    public void beforeScenerio(Scenario scenario){
-        LOGGER.info(String.format("\n\n\t[%d] > Scenerio [%s] started\t",++sceneriosCounter, scenario.getName() ));
-    }
-    @After
-    public void afterScenerio(Scenario scenerio){
-        if(scenerio.isFailed()){
-            ++failedSceneriosCounter;
-        }
-
-        String result = scenerio.isFailed() ? "with errors" : "succesfully";
-        LOGGER.info(String.format("\n\t[%d] > Scenerio [%s] finished %s\t", sceneriosCounter,scenerio.getName(),result));
-        LOGGER.info(String.format("\n\t%d of %d scenerios failed so far \t ",failedSceneriosCounter, sceneriosCounter));
-
-        if(webDriver != null){
-            webDriver.quit();
-        }
-    }
-
     @Given("^I use (\\w+(?: \\w+)*) driver")
-    public void useDriver(String browserKey){
-        webDriver = config.browserManager.browser(osValue,browserKey);
+    public void useDriver(String browserKey) {
+        webDriver = BrowserManager.createBrowser(browserKey);
         LOGGER.info(String.format("\n\tDriver is: %s\n\t", browserKey));
-
     }
-
 
     @When("^I open (\\w+(?: \\w+)*) page$")
-    public void i_open_page(String flowKey) {
-
-        JsonObject jsonObject = jsonParser.main("pages");
+    public void iOpenPage(String flowKey) {
+        JsonObject jsonObject = JsonParser.parse("pages");
         this.pageObject = jsonObject.get(flowKey).getAsJsonObject();
         String urlString = this.pageObject.get("url").getAsString();
-
         webDriver.get(urlString);
-
         LOGGER.info(String.format("\n\tNavigate to the website: %s\n\t", urlString));
-
     }
 
     @Then("^I refresh the page$")
-    public void i_refresh_the_page()  {
-        String URL = webDriver.getCurrentUrl();
+    public void iRefreshThePage() {
+        String url = webDriver.getCurrentUrl();
         webDriver.navigate().refresh();
-        LOGGER.info(String.format("\n\t The page [%s] has been refreshed.\n\t ",URL));
+        LOGGER.info(String.format("\n\tThe page [%s] has been refreshed.\n\t", url));
     }
+
     @Then("^I see webpage title equals \"([^\"]*)\"$")
-    public void webpageTitleEquals(String expectedHeader){
+    public void webpageTitleEquals(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertEquals(String.format("Expected webpage title [%s] but got [%s]", expectedHeader, currentHeader), expectedHeader, currentHeader);
+        assertThat(currentHeader)
+                .as("Expected webpage title [%s] but got [%s]", expectedHeader, currentHeader)
+                .isEqualTo(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title is [%s] as expected [%s]\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title contains \"([^\"]*)\"$")
-    public void webpageTitleContains(String expectedHeader){
+    public void webpageTitleContains(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertTrue(String.format("Expected webpage title [%s] to contain [%s]", currentHeader, expectedHeader), currentHeader.contains(expectedHeader));
+        assertThat(currentHeader)
+                .as("Expected webpage title [%s] to contain [%s]", currentHeader, expectedHeader)
+                .contains(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title [%s] contains [%s]\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title does not equal \"([^\"]*)\"$")
-    public void webpageTitleNotEqual(String expectedHeader){
+    public void webpageTitleNotEqual(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertNotEquals(String.format("Expected webpage title to NOT equal [%s] but it does", expectedHeader), expectedHeader, currentHeader);
+        assertThat(currentHeader)
+                .as("Expected webpage title to NOT equal [%s] but it does", expectedHeader)
+                .isNotEqualTo(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title [%s] does not equal [%s] as expected\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title does not contain \"([^\"]*)\"$")
-    public void webpageTitleNotContain(String expectedHeader){
+    public void webpageTitleNotContain(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertFalse(String.format("Expected webpage title [%s] to NOT contain [%s] but it does", currentHeader, expectedHeader), currentHeader.contains(expectedHeader));
+        assertThat(currentHeader)
+                .as("Expected webpage title [%s] to NOT contain [%s] but it does", currentHeader, expectedHeader)
+                .doesNotContain(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title [%s] does not contain [%s] as expected\n\t", currentHeader, expectedHeader));
     }
 
-
     @And("^I see text$")
     public void iSeeText(DataTable table) {
-
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get("mainPanel").getAsString();
-        this.by = selectDecision.main(this.by, "xpath", pageElement);
+        this.by = SelectDecision.resolve("xpath", pageElement);
 
-       /* webDriver.findElement(
-                            new ByAll(By.className(pageElement),
-                                    By.cssSelector(pageElement),
-                                    By.id(pageElement),
-                                    By.linkText(pageElement),
-                                    By.name(pageElement),
-                                    By.xpath(pageElement),
-                                    By.tagName(pageElement),
-                                    By.partialLinkText(pageElement)));*/
-
-        for ( DataTableRow row : table.getGherkinRows() ) {
-
-            String key = row.getCells().get(0);
-
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
             boolean isThere = webDriver.getPageSource().contains(key);
             if (isThere) {
                 LOGGER.info(String.format("\n\tThe text is in the page: %s\n\t", key));
             } else {
-                String temp = webDriver.getPageSource();
-                System.out.println(temp);
-                throw new java.lang.AssertionError(String.format("\n\tThe text is NOT in the page: %s\n\t", key));
+                throw new AssertionError(String.format("\n\tThe text is NOT in the page: %s\n\t", key));
             }
-
         }
     }
 
-
-
-   @Then("^I open new tab$")
-    public void i_open_new_tab(){
-
-       ((JavascriptExecutor)webDriver).executeScript("window.open()");
-       ArrayList<String> tabs = new ArrayList<String>(webDriver.getWindowHandles());
-       webDriver.switchTo().window(tabs.get(1));
-       LOGGER.info(String.format("\n\t The new tab is opened\n\t"));
-
-   }
+    @Then("^I open new tab$")
+    public void iOpenNewTab() {
+        ((JavascriptExecutor) webDriver).executeScript("window.open()");
+        ArrayList<String> tabs = new ArrayList<>(webDriver.getWindowHandles());
+        webDriver.switchTo().window(tabs.get(1));
+        LOGGER.info("\n\tThe new tab is opened\n\t");
+    }
 
     @Then("^I close the tab$")
-    public void i_close_the_tab() {
-
-        ((JavascriptExecutor)webDriver).executeScript("window.close()");
-        LOGGER.info(String.format("\n\t The tab is closed\n\t"));
-        ArrayList<String> tabs = new ArrayList<String>(webDriver.getWindowHandles());
+    public void iCloseTheTab() {
+        ((JavascriptExecutor) webDriver).executeScript("window.close()");
+        LOGGER.info("\n\tThe tab is closed\n\t");
+        ArrayList<String> tabs = new ArrayList<>(webDriver.getWindowHandles());
         webDriver.switchTo().window(tabs.get(tabs.size() - 1));
-
     }
 
     @Then("^I see (\\w+(?: \\w+)*) equals to \"([^\"]*)\"$")
     public void iSeeElement(String pageKey, String valueKey) {
-
         JsonObject pageElementObject = pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         String element = webDriver.findElement(By.xpath(pageElement)).getText();
-        Assert.assertEquals(valueKey,element);
+        assertThat(element).isEqualTo(valueKey);
         LOGGER.info(String.format("\n\tCheck web element: %s\n\t", pageKey));
     }
 
-    @Then("^I mouse hover to element (\\w+(?: \\w+)*)$") //sor
-    public void iMouseHover(WebElement element){
+    @Then("^I mouse hover to element (\\w+(?: \\w+)*)$")
+    public void iMouseHover(WebElement element) {
         Actions action = new Actions(webDriver);
         action.moveToElement(element).perform();
         LOGGER.info(String.format("\n\tMouse hover to element: %s\n\t", element));
-
     }
 
     @Then("I mouse hover to element (\\w+(?: \\w+)*) and click")
-    public void iMouseClick(WebElement element){
-        Actions action =new  Actions(webDriver);
+    public void iMouseClick(WebElement element) {
+        Actions action = new Actions(webDriver);
         action.moveToElement(element).click(element).build().perform();
         LOGGER.info(String.format("\n\tMouse hover and click to element: %s\n\t", element));
-
-
     }
 
     @When("^I wait for page$")
     public void iWaitForPage() {
-
-        webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         LOGGER.info("\n\tWait for page\n\t");
-
     }
-
 
     @Then("^I switch the iFrame \"([^\"]*)\"$")
     public void iSwitchFrame(String frameIdentifier) {
         WebElement iframe = webDriver.findElement(By.xpath(frameIdentifier));
         webDriver.switchTo().frame(iframe);
         LOGGER.info(String.format("\n\tiFrame switched: %s\n\t", frameIdentifier));
-
     }
-
-
-
-
 
     @Then("^I fill by (\\w+(?: \\w+)*)$")
     public void iFillBy(String selectKey, DataTable table) {
-
-        for ( DataTableRow row : table.getGherkinRows() ) {
-
-            String key = row.getCells().get(0);
-            String value = row.getCells().get(1);
-
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
+            String value = row.get(1);
             JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
             String pageElement = pageElementObject.get(key).getAsString();
-
-            this.by = selectDecision.main(this.by, selectKey, pageElement);
-
-            webDriver.findElements( this.by ).clear();
-            webDriver.findElement( this.by ).sendKeys( value );
-
+            this.by = SelectDecision.resolve(selectKey, pageElement);
+            webDriver.findElements(this.by).clear();
+            webDriver.findElement(this.by).sendKeys(value);
             LOGGER.info(String.format("\n\tFilling the key: [%s] \t with the value: [%s]\n\t", key, value));
-
         }
-
     }
 
     @When("^I open the url \"([^\"]*)\" in new tab$")
-    public void iOpenUrlNewTab(String pageKey){
-        ((JavascriptExecutor)webDriver).executeScript("window.open()");
-        ArrayList<String> tabs = new ArrayList<String>(webDriver.getWindowHandles());
+    public void iOpenUrlNewTab(String pageKey) {
+        ((JavascriptExecutor) webDriver).executeScript("window.open()");
+        ArrayList<String> tabs = new ArrayList<>(webDriver.getWindowHandles());
         webDriver.switchTo().window(tabs.get(1));
         webDriver.get(pageKey);
-        LOGGER.info("\n\tTh URL [" + pageKey + "] \t opened in new tab\n\t");
-
-
+        LOGGER.info("\n\tThe URL [" + pageKey + "] opened in new tab\n\t");
     }
 
     @When("^I click (\\w+(?: \\w+)*), link: (\\w+(?: \\w+)*) opened in new tab$")
-    public void iClickedNewTab(String pageKey,String selectKey){
+    public void iClickedNewTab(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = this.webDriver.findElement(by);
         Actions action = new Actions(webDriver);
         action.keyDown(Keys.COMMAND).keyDown(Keys.SHIFT).click(element).keyUp(Keys.CONTROL).keyUp(Keys.SHIFT).build().perform();
-
         LOGGER.info(String.format("\n\tClicking link and opened in new tab %s\n\t", pageKey));
-
     }
 
     @Then("^I select (\\w+(?: \\w+)*) dropdown option on element (\\w+(?: \\w+)*)$")
-    public void iSelectDropdownOption(String option, String element){
+    public void iSelectDropdownOption(String option, String element) {
         WebElement dropdown = webDriver.findElement(By.tagName("option"));
         Select dd = new Select(dropdown);
         dd.selectByVisibleText(option);
@@ -273,11 +199,11 @@ public class seleniumStepDefinitions {
 
     @Then("^I click by (\\w+(?: \\w+)*)$")
     public void iClickBy(String selectKey, DataTable table) {
-        for (DataTableRow row : table.getGherkinRows()) {
-            String key = row.getCells().get(0);
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
             JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
             String pageElement = pageElementObject.get(key).getAsString();
-            this.by = selectDecision.main(this.by, selectKey, pageElement);
+            this.by = SelectDecision.resolve(selectKey, pageElement);
             webDriver.findElement(this.by).click();
             LOGGER.info(String.format("\n\tClicked element: [%s]\n\t", key));
         }
@@ -287,7 +213,7 @@ public class seleniumStepDefinitions {
     public void iClickElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         webDriver.findElement(this.by).click();
         LOGGER.info(String.format("\n\tClicked element: [%s]\n\t", pageKey));
     }
@@ -296,10 +222,9 @@ public class seleniumStepDefinitions {
     public void iDoubleClickElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = webDriver.findElement(this.by);
-        Actions action = new Actions(webDriver);
-        action.doubleClick(element).perform();
+        new Actions(webDriver).doubleClick(element).perform();
         LOGGER.info(String.format("\n\tDouble clicked element: [%s]\n\t", pageKey));
     }
 
@@ -307,10 +232,9 @@ public class seleniumStepDefinitions {
     public void iRightClickElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = webDriver.findElement(this.by);
-        Actions action = new Actions(webDriver);
-        action.contextClick(element).perform();
+        new Actions(webDriver).contextClick(element).perform();
         LOGGER.info(String.format("\n\tRight clicked element: [%s]\n\t", pageKey));
     }
 
@@ -339,14 +263,18 @@ public class seleniumStepDefinitions {
     @Then("^I see current url equals \"([^\"]*)\"$")
     public void iSeeCurrentUrlEquals(String expectedUrl) {
         String currentUrl = webDriver.getCurrentUrl();
-        Assert.assertEquals(String.format("Expected URL [%s] but got [%s]", expectedUrl, currentUrl), expectedUrl, currentUrl);
+        assertThat(currentUrl)
+                .as("Expected URL [%s] but got [%s]", expectedUrl, currentUrl)
+                .isEqualTo(expectedUrl);
         LOGGER.info(String.format("\n\tCurrent URL [%s] equals expected [%s]\n\t", currentUrl, expectedUrl));
     }
 
     @Then("^I see current url contains \"([^\"]*)\"$")
     public void iSeeCurrentUrlContains(String expectedText) {
         String currentUrl = webDriver.getCurrentUrl();
-        Assert.assertTrue(String.format("Expected URL [%s] to contain [%s]", currentUrl, expectedText), currentUrl.contains(expectedText));
+        assertThat(currentUrl)
+                .as("Expected URL [%s] to contain [%s]", currentUrl, expectedText)
+                .contains(expectedText);
         LOGGER.info(String.format("\n\tCurrent URL [%s] contains [%s]\n\t", currentUrl, expectedText));
     }
 
@@ -356,9 +284,11 @@ public class seleniumStepDefinitions {
     public void iSeeElementIsDisplayed(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         boolean isDisplayed = webDriver.findElement(this.by).isDisplayed();
-        Assert.assertTrue(String.format("Expected element [%s] to be displayed but it is not", pageKey), isDisplayed);
+        assertThat(isDisplayed)
+                .as("Expected element [%s] to be displayed but it is not", pageKey)
+                .isTrue();
         LOGGER.info(String.format("\n\tElement [%s] is displayed\n\t", pageKey));
     }
 
@@ -366,10 +296,12 @@ public class seleniumStepDefinitions {
     public void iSeeElementIsNotDisplayed(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         List<WebElement> elements = webDriver.findElements(this.by);
         boolean isNotDisplayed = elements.isEmpty() || !elements.get(0).isDisplayed();
-        Assert.assertTrue(String.format("Expected element [%s] to NOT be displayed but it is", pageKey), isNotDisplayed);
+        assertThat(isNotDisplayed)
+                .as("Expected element [%s] to NOT be displayed but it is", pageKey)
+                .isTrue();
         LOGGER.info(String.format("\n\tElement [%s] is not displayed\n\t", pageKey));
     }
 
@@ -377,9 +309,11 @@ public class seleniumStepDefinitions {
     public void iSeeElementIsEnabled(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         boolean isEnabled = webDriver.findElement(this.by).isEnabled();
-        Assert.assertTrue(String.format("Expected element [%s] to be enabled but it is not", pageKey), isEnabled);
+        assertThat(isEnabled)
+                .as("Expected element [%s] to be enabled but it is not", pageKey)
+                .isTrue();
         LOGGER.info(String.format("\n\tElement [%s] is enabled\n\t", pageKey));
     }
 
@@ -387,9 +321,11 @@ public class seleniumStepDefinitions {
     public void iSeeElementIsDisabled(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         boolean isEnabled = webDriver.findElement(this.by).isEnabled();
-        Assert.assertFalse(String.format("Expected element [%s] to be disabled but it is enabled", pageKey), isEnabled);
+        assertThat(isEnabled)
+                .as("Expected element [%s] to be disabled but it is enabled", pageKey)
+                .isFalse();
         LOGGER.info(String.format("\n\tElement [%s] is disabled\n\t", pageKey));
     }
 
@@ -397,9 +333,12 @@ public class seleniumStepDefinitions {
     public void iSeeElementAttributeEquals(String pageKey, String attribute, String expectedValue, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         String actualValue = webDriver.findElement(this.by).getAttribute(attribute);
-        Assert.assertEquals(String.format("Expected attribute [%s] of element [%s] to be [%s] but got [%s]", attribute, pageKey, expectedValue, actualValue), expectedValue, actualValue);
+        assertThat(actualValue)
+                .as("Expected attribute [%s] of element [%s] to be [%s] but got [%s]",
+                        attribute, pageKey, expectedValue, actualValue)
+                .isEqualTo(expectedValue);
         LOGGER.info(String.format("\n\tElement [%s] attribute [%s] equals [%s]\n\t", pageKey, attribute, expectedValue));
     }
 
@@ -407,9 +346,12 @@ public class seleniumStepDefinitions {
     public void iSeeElementCount(String pageKey, int expectedCount, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         int actualCount = webDriver.findElements(this.by).size();
-        Assert.assertEquals(String.format("Expected [%d] elements for [%s] but found [%d]", expectedCount, pageKey, actualCount), expectedCount, actualCount);
+        assertThat(actualCount)
+                .as("Expected [%d] elements for [%s] but found [%d]",
+                        expectedCount, pageKey, actualCount)
+                .isEqualTo(expectedCount);
         LOGGER.info(String.format("\n\tElement [%s] count is [%d] as expected\n\t", pageKey, expectedCount));
     }
 
@@ -430,7 +372,9 @@ public class seleniumStepDefinitions {
     @Then("^I see alert text equals \"([^\"]*)\"$")
     public void iSeeAlertTextEquals(String expectedText) {
         String alertText = webDriver.switchTo().alert().getText();
-        Assert.assertEquals(String.format("Expected alert text [%s] but got [%s]", expectedText, alertText), expectedText, alertText);
+        assertThat(alertText)
+                .as("Expected alert text [%s] but got [%s]", expectedText, alertText)
+                .isEqualTo(expectedText);
         LOGGER.info(String.format("\n\tAlert text is [%s] as expected\n\t", alertText));
     }
 
@@ -446,15 +390,14 @@ public class seleniumStepDefinitions {
     public void iPressEnterOnElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         webDriver.findElement(this.by).sendKeys(Keys.ENTER);
         LOGGER.info(String.format("\n\tPressed ENTER on element: [%s]\n\t", pageKey));
     }
 
     @Then("^I press escape$")
     public void iPressEscape() {
-        Actions action = new Actions(webDriver);
-        action.sendKeys(Keys.ESCAPE).perform();
+        new Actions(webDriver).sendKeys(Keys.ESCAPE).perform();
         LOGGER.info("\n\tPressed ESCAPE\n\t");
     }
 
@@ -462,7 +405,7 @@ public class seleniumStepDefinitions {
     public void iPressTabOnElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         webDriver.findElement(this.by).sendKeys(Keys.TAB);
         LOGGER.info(String.format("\n\tPressed TAB on element: [%s]\n\t", pageKey));
     }
@@ -473,7 +416,7 @@ public class seleniumStepDefinitions {
     public void iScrollToElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = webDriver.findElement(this.by);
         ((JavascriptExecutor) webDriver).executeScript("arguments[0].scrollIntoView(true);", element);
         LOGGER.info(String.format("\n\tScrolled to element: [%s]\n\t", pageKey));
@@ -483,7 +426,7 @@ public class seleniumStepDefinitions {
     public void iClearElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         webDriver.findElement(this.by).clear();
         LOGGER.info(String.format("\n\tCleared element: [%s]\n\t", pageKey));
     }
@@ -502,22 +445,8 @@ public class seleniumStepDefinitions {
     public void iSubmitElement(String pageKey, String selectKey) {
         JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
-        this.by = selectDecision.main(this.by, selectKey, pageElement);
+        this.by = SelectDecision.resolve(selectKey, pageElement);
         webDriver.findElement(this.by).submit();
         LOGGER.info(String.format("\n\tSubmitted form via element: [%s]\n\t", pageKey));
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

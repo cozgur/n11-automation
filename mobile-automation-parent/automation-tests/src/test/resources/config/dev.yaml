@@ -1,0 +1,8 @@
+# Dev environment configuration
+env: dev
+
+appium:
+  url: "http://127.0.0.1:4723"
+
+reporting:
+  log_level: DEBUG
