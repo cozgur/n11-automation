@@ -5,7 +5,7 @@ Feature: FunnelFox Dashboard smoke tests
   #   mvn test -Dapp=funnelfox -Dplatform=android
   #   mvn test -Dapp=funnelfox -Dplatform=ios
 
-  @android @ios
+  @smoke @android @ios
   Scenario: Dashboard loads successfully
     Given I use mobile driver from config
     When I launch the mobile app

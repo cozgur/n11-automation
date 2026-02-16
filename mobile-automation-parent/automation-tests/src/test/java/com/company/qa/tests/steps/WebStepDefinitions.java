@@ -4,33 +4,31 @@ import com.google.gson.JsonObject;
 import com.company.qa.core.driver.BrowserManager;
 import com.company.qa.core.driver.SelectDecision;
 import com.company.qa.core.util.JsonParser;
-import cucumber.api.DataTable;
-import cucumber.api.java.en.And;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
-import cucumber.api.java.en.When;
-import gherkin.formatter.model.DataTableRow;
-import org.junit.Assert;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Select;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.company.qa.core.util.LogManager.LOGGER;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class WebStepDefinitions {
 
     private WebDriver webDriver;
-    private String osValue = System.getProperty("os.name");
     private JsonObject pageObject;
     private By by;
 
     @Given("^I use (\\w+(?: \\w+)*) driver")
     public void useDriver(String browserKey) {
-        webDriver = BrowserManager.createBrowser(osValue, browserKey);
+        webDriver = BrowserManager.createBrowser(browserKey);
         LOGGER.info(String.format("\n\tDriver is: %s\n\t", browserKey));
     }
 
@@ -53,32 +51,36 @@ public class WebStepDefinitions {
     @Then("^I see webpage title equals \"([^\"]*)\"$")
     public void webpageTitleEquals(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertEquals(String.format("Expected webpage title [%s] but got [%s]", expectedHeader, currentHeader),
-                expectedHeader, currentHeader);
+        assertThat(currentHeader)
+                .as("Expected webpage title [%s] but got [%s]", expectedHeader, currentHeader)
+                .isEqualTo(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title is [%s] as expected [%s]\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title contains \"([^\"]*)\"$")
     public void webpageTitleContains(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertTrue(String.format("Expected webpage title [%s] to contain [%s]", currentHeader, expectedHeader),
-                currentHeader.contains(expectedHeader));
+        assertThat(currentHeader)
+                .as("Expected webpage title [%s] to contain [%s]", currentHeader, expectedHeader)
+                .contains(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title [%s] contains [%s]\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title does not equal \"([^\"]*)\"$")
     public void webpageTitleNotEqual(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertNotEquals(String.format("Expected webpage title to NOT equal [%s] but it does", expectedHeader),
-                expectedHeader, currentHeader);
+        assertThat(currentHeader)
+                .as("Expected webpage title to NOT equal [%s] but it does", expectedHeader)
+                .isNotEqualTo(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title [%s] does not equal [%s] as expected\n\t", currentHeader, expectedHeader));
     }
 
     @Then("^I see webpage title does not contain \"([^\"]*)\"$")
     public void webpageTitleNotContain(String expectedHeader) {
         String currentHeader = webDriver.getTitle();
-        Assert.assertFalse(String.format("Expected webpage title [%s] to NOT contain [%s] but it does", currentHeader, expectedHeader),
-                currentHeader.contains(expectedHeader));
+        assertThat(currentHeader)
+                .as("Expected webpage title [%s] to NOT contain [%s] but it does", currentHeader, expectedHeader)
+                .doesNotContain(expectedHeader);
         LOGGER.info(String.format("\n\tThe webpage title [%s] does not contain [%s] as expected\n\t", currentHeader, expectedHeader));
     }
 
@@ -88,8 +90,8 @@ public class WebStepDefinitions {
         String pageElement = pageElementObject.get("mainPanel").getAsString();
         this.by = SelectDecision.resolve("xpath", pageElement);
 
-        for (DataTableRow row : table.getGherkinRows()) {
-            String key = row.getCells().get(0);
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
             boolean isThere = webDriver.getPageSource().contains(key);
             if (isThere) {
                 LOGGER.info(String.format("\n\tThe text is in the page: %s\n\t", key));
@@ -120,7 +122,7 @@ public class WebStepDefinitions {
         JsonObject pageElementObject = pageObject.get("elements").getAsJsonObject();
         String pageElement = pageElementObject.get(pageKey).getAsString();
         String element = webDriver.findElement(By.xpath(pageElement)).getText();
-        Assert.assertEquals(valueKey, element);
+        assertThat(element).isEqualTo(valueKey);
         LOGGER.info(String.format("\n\tCheck web element: %s\n\t", pageKey));
     }
 
@@ -140,7 +142,7 @@ public class WebStepDefinitions {
 
     @When("^I wait for page$")
     public void iWaitForPage() {
-        webDriver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         LOGGER.info("\n\tWait for page\n\t");
     }
 
@@ -153,9 +155,9 @@ public class WebStepDefinitions {
 
     @Then("^I fill by (\\w+(?: \\w+)*)$")
     public void iFillBy(String selectKey, DataTable table) {
-        for (DataTableRow row : table.getGherkinRows()) {
-            String key = row.getCells().get(0);
-            String value = row.getCells().get(1);
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
+            String value = row.get(1);
             JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
             String pageElement = pageElementObject.get(key).getAsString();
             this.by = SelectDecision.resolve(selectKey, pageElement);
@@ -197,8 +199,8 @@ public class WebStepDefinitions {
 
     @Then("^I click by (\\w+(?: \\w+)*)$")
     public void iClickBy(String selectKey, DataTable table) {
-        for (DataTableRow row : table.getGherkinRows()) {
-            String key = row.getCells().get(0);
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
             JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
             String pageElement = pageElementObject.get(key).getAsString();
             this.by = SelectDecision.resolve(selectKey, pageElement);
@@ -261,16 +263,18 @@ public class WebStepDefinitions {
     @Then("^I see current url equals \"([^\"]*)\"$")
     public void iSeeCurrentUrlEquals(String expectedUrl) {
         String currentUrl = webDriver.getCurrentUrl();
-        Assert.assertEquals(String.format("Expected URL [%s] but got [%s]", expectedUrl, currentUrl),
-                expectedUrl, currentUrl);
+        assertThat(currentUrl)
+                .as("Expected URL [%s] but got [%s]", expectedUrl, currentUrl)
+                .isEqualTo(expectedUrl);
         LOGGER.info(String.format("\n\tCurrent URL [%s] equals expected [%s]\n\t", currentUrl, expectedUrl));
     }
 
     @Then("^I see current url contains \"([^\"]*)\"$")
     public void iSeeCurrentUrlContains(String expectedText) {
         String currentUrl = webDriver.getCurrentUrl();
-        Assert.assertTrue(String.format("Expected URL [%s] to contain [%s]", currentUrl, expectedText),
-                currentUrl.contains(expectedText));
+        assertThat(currentUrl)
+                .as("Expected URL [%s] to contain [%s]", currentUrl, expectedText)
+                .contains(expectedText);
         LOGGER.info(String.format("\n\tCurrent URL [%s] contains [%s]\n\t", currentUrl, expectedText));
     }
 
@@ -282,7 +286,9 @@ public class WebStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         boolean isDisplayed = webDriver.findElement(this.by).isDisplayed();
-        Assert.assertTrue(String.format("Expected element [%s] to be displayed but it is not", pageKey), isDisplayed);
+        assertThat(isDisplayed)
+                .as("Expected element [%s] to be displayed but it is not", pageKey)
+                .isTrue();
         LOGGER.info(String.format("\n\tElement [%s] is displayed\n\t", pageKey));
     }
 
@@ -293,7 +299,9 @@ public class WebStepDefinitions {
         this.by = SelectDecision.resolve(selectKey, pageElement);
         List<WebElement> elements = webDriver.findElements(this.by);
         boolean isNotDisplayed = elements.isEmpty() || !elements.get(0).isDisplayed();
-        Assert.assertTrue(String.format("Expected element [%s] to NOT be displayed but it is", pageKey), isNotDisplayed);
+        assertThat(isNotDisplayed)
+                .as("Expected element [%s] to NOT be displayed but it is", pageKey)
+                .isTrue();
         LOGGER.info(String.format("\n\tElement [%s] is not displayed\n\t", pageKey));
     }
 
@@ -303,7 +311,9 @@ public class WebStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         boolean isEnabled = webDriver.findElement(this.by).isEnabled();
-        Assert.assertTrue(String.format("Expected element [%s] to be enabled but it is not", pageKey), isEnabled);
+        assertThat(isEnabled)
+                .as("Expected element [%s] to be enabled but it is not", pageKey)
+                .isTrue();
         LOGGER.info(String.format("\n\tElement [%s] is enabled\n\t", pageKey));
     }
 
@@ -313,7 +323,9 @@ public class WebStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         boolean isEnabled = webDriver.findElement(this.by).isEnabled();
-        Assert.assertFalse(String.format("Expected element [%s] to be disabled but it is enabled", pageKey), isEnabled);
+        assertThat(isEnabled)
+                .as("Expected element [%s] to be disabled but it is enabled", pageKey)
+                .isFalse();
         LOGGER.info(String.format("\n\tElement [%s] is disabled\n\t", pageKey));
     }
 
@@ -323,8 +335,10 @@ public class WebStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         String actualValue = webDriver.findElement(this.by).getAttribute(attribute);
-        Assert.assertEquals(String.format("Expected attribute [%s] of element [%s] to be [%s] but got [%s]",
-                attribute, pageKey, expectedValue, actualValue), expectedValue, actualValue);
+        assertThat(actualValue)
+                .as("Expected attribute [%s] of element [%s] to be [%s] but got [%s]",
+                        attribute, pageKey, expectedValue, actualValue)
+                .isEqualTo(expectedValue);
         LOGGER.info(String.format("\n\tElement [%s] attribute [%s] equals [%s]\n\t", pageKey, attribute, expectedValue));
     }
 
@@ -334,8 +348,10 @@ public class WebStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         int actualCount = webDriver.findElements(this.by).size();
-        Assert.assertEquals(String.format("Expected [%d] elements for [%s] but found [%d]",
-                expectedCount, pageKey, actualCount), expectedCount, actualCount);
+        assertThat(actualCount)
+                .as("Expected [%d] elements for [%s] but found [%d]",
+                        expectedCount, pageKey, actualCount)
+                .isEqualTo(expectedCount);
         LOGGER.info(String.format("\n\tElement [%s] count is [%d] as expected\n\t", pageKey, expectedCount));
     }
 
@@ -356,8 +372,9 @@ public class WebStepDefinitions {
     @Then("^I see alert text equals \"([^\"]*)\"$")
     public void iSeeAlertTextEquals(String expectedText) {
         String alertText = webDriver.switchTo().alert().getText();
-        Assert.assertEquals(String.format("Expected alert text [%s] but got [%s]", expectedText, alertText),
-                expectedText, alertText);
+        assertThat(alertText)
+                .as("Expected alert text [%s] but got [%s]", expectedText, alertText)
+                .isEqualTo(expectedText);
         LOGGER.info(String.format("\n\tAlert text is [%s] as expected\n\t", alertText));
     }
 

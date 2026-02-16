@@ -1,12 +1,11 @@
 package com.company.qa.core.driver;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.MobileElement;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
-import org.openqa.selenium.remote.DesiredCapabilities;
+import io.appium.java_client.remote.options.BaseOptions;
+import com.company.qa.core.config.EnvironmentConfig;
 import com.company.qa.core.util.JsonParser;
 
 import static com.company.qa.core.util.LogManager.LOGGER;
@@ -17,21 +16,31 @@ import java.util.Map;
 
 public class MobileDriverManager {
 
-    private static final String DEFAULT_APPIUM_URL = "http://127.0.0.1:4723/wd/hub";
+    private static final ThreadLocal<AppiumDriver> driverThread = new ThreadLocal<>();
+    private static final ThreadLocal<String> appIdThread = new ThreadLocal<>();
+    private static final ThreadLocal<String> platformThread = new ThreadLocal<>();
 
-    private static final ThreadLocal<AppiumDriver<MobileElement>> driverThread = new ThreadLocal<>();
-
-    public static AppiumDriver<MobileElement> getDriver() {
+    public static AppiumDriver getDriver() {
         return driverThread.get();
     }
 
+    public static String getAppId() {
+        return appIdThread.get();
+    }
+
+    public static String getPlatform() {
+        return platformThread.get();
+    }
+
     public static void removeDriver() {
-        AppiumDriver<MobileElement> driver = driverThread.get();
+        AppiumDriver driver = driverThread.get();
         if (driver != null) {
             driver.quit();
-            LOGGER.info("\n\tMobile driver quit and removed from thread\n\t");
+            LOGGER.info("Mobile driver quit and removed from thread");
         }
         driverThread.remove();
+        appIdThread.remove();
+        platformThread.remove();
     }
 
     /**
@@ -44,9 +53,9 @@ public class MobileDriverManager {
      * Optional overrides:
      *   -DdeviceName=Pixel 6         (overrides apps.json default)
      *   -DplatformVersion=13.0       (overrides apps.json default)
-     *   -DappiumUrl=http://...       (overrides default localhost)
+     *   -DappiumUrl=http://...       (overrides default)
      */
-    public static AppiumDriver<MobileElement> createDriverFromConfig() {
+    public static AppiumDriver createDriverFromConfig() {
         String platform = System.getProperty("platform");
         String appName = System.getProperty("app");
 
@@ -70,101 +79,115 @@ public class MobileDriverManager {
                     "Available: " + appConfig.keySet());
         }
 
-        DesiredCapabilities caps = new DesiredCapabilities();
-        for (Map.Entry<String, JsonElement> entry : platformConfig.entrySet()) {
-            caps.setCapability(entry.getKey(), entry.getValue().getAsString());
-        }
+        CapabilityBuilder builder = new CapabilityBuilder()
+                .platform(platform)
+                .fromJson(platformConfig);
 
+        // System property overrides
         String deviceNameOverride = System.getProperty("deviceName");
         if (deviceNameOverride != null && !deviceNameOverride.isEmpty()) {
-            caps.setCapability("deviceName", deviceNameOverride);
+            builder.device(deviceNameOverride);
         }
 
         String versionOverride = System.getProperty("platformVersion");
         if (versionOverride != null && !versionOverride.isEmpty()) {
-            caps.setCapability("platformVersion", versionOverride);
+            builder.version(versionOverride);
         }
 
         String appPathOverride = System.getProperty("appPath");
         if (appPathOverride != null && !appPathOverride.isEmpty()) {
-            caps.setCapability("app", appPathOverride);
+            builder.app(appPathOverride);
         }
 
-        String appiumUrl = System.getProperty("appiumUrl", DEFAULT_APPIUM_URL);
+        String appiumUrl = System.getProperty("appiumUrl",
+                EnvironmentConfig.getInstance().getAppiumUrl());
 
-        LOGGER.info(String.format("\n\t[Thread-%d] Creating driver from config: app=[%s] platform=[%s] device=[%s]\n\t",
-                Thread.currentThread().getId(), appName, platform, caps.getCapability("deviceName")));
+        LOGGER.info("[Thread-{}] Creating driver from config: app=[{}] platform=[{}]",
+                Thread.currentThread().getId(), appName, platform);
 
-        return initDriver(platform, caps, appiumUrl);
+        AppiumDriver driver = initDriver(platform, builder.build(), appiumUrl);
+
+        // Extract and store appId (appPackage for Android, bundleId for iOS)
+        String appId = extractAppId(platformConfig, platform);
+        appIdThread.set(appId);
+        platformThread.set(platform.toLowerCase());
+
+        return driver;
     }
 
-    public static AppiumDriver<MobileElement> createDriver(String platform, String deviceName,
+    public static AppiumDriver createDriver(String platform, String deviceName,
             String platformVersion, String appiumUrl) {
 
-        DesiredCapabilities caps = new DesiredCapabilities();
-        caps.setCapability("deviceName", deviceName);
-        caps.setCapability("platformVersion", platformVersion);
+        BaseOptions<?> options = new CapabilityBuilder()
+                .platform(platform)
+                .device(deviceName)
+                .version(platformVersion)
+                .build();
 
-        return initDriver(platform, caps, appiumUrl);
+        AppiumDriver driver = initDriver(platform, options, appiumUrl);
+        platformThread.set(platform.toLowerCase());
+        return driver;
     }
 
-    public static AppiumDriver<MobileElement> createDriver(String platform, String deviceName,
+    public static AppiumDriver createDriver(String platform, String deviceName,
             String platformVersion) {
-        return createDriver(platform, deviceName, platformVersion, DEFAULT_APPIUM_URL);
+        return createDriver(platform, deviceName, platformVersion,
+                EnvironmentConfig.getInstance().getAppiumUrl());
     }
 
-    public static AppiumDriver<MobileElement> createDriverWithApp(String platform, String deviceName,
+    public static AppiumDriver createDriverWithApp(String platform, String deviceName,
             String platformVersion, String app, String appiumUrl) {
 
-        DesiredCapabilities caps = new DesiredCapabilities();
-        caps.setCapability("deviceName", deviceName);
-        caps.setCapability("platformVersion", platformVersion);
-        caps.setCapability("app", app);
+        BaseOptions<?> options = new CapabilityBuilder()
+                .platform(platform)
+                .device(deviceName)
+                .version(platformVersion)
+                .app(app)
+                .build();
 
-        return initDriver(platform, caps, appiumUrl);
+        AppiumDriver driver = initDriver(platform, options, appiumUrl);
+        platformThread.set(platform.toLowerCase());
+        return driver;
     }
 
-    public static AppiumDriver<MobileElement> createDriverWithApp(String platform, String deviceName,
+    public static AppiumDriver createDriverWithApp(String platform, String deviceName,
             String platformVersion, String app) {
-        return createDriverWithApp(platform, deviceName, platformVersion, app, DEFAULT_APPIUM_URL);
+        return createDriverWithApp(platform, deviceName, platformVersion, app,
+                EnvironmentConfig.getInstance().getAppiumUrl());
     }
 
-    public static AppiumDriver<MobileElement> createDriverWithCapabilities(String platform,
+    public static AppiumDriver createDriverWithCapabilities(String platform,
             Map<String, String> capabilities, String appiumUrl) {
 
-        DesiredCapabilities caps = new DesiredCapabilities();
+        CapabilityBuilder builder = new CapabilityBuilder().platform(platform);
         for (Map.Entry<String, String> entry : capabilities.entrySet()) {
-            caps.setCapability(entry.getKey(), entry.getValue());
+            builder.capability(entry.getKey(), entry.getValue());
         }
 
-        return initDriver(platform, caps, appiumUrl);
+        AppiumDriver driver = initDriver(platform, builder.build(), appiumUrl);
+        platformThread.set(platform.toLowerCase());
+        return driver;
     }
 
-    public static AppiumDriver<MobileElement> createDriverWithCapabilities(String platform,
+    public static AppiumDriver createDriverWithCapabilities(String platform,
             Map<String, String> capabilities) {
-        return createDriverWithCapabilities(platform, capabilities, DEFAULT_APPIUM_URL);
+        return createDriverWithCapabilities(platform, capabilities,
+                EnvironmentConfig.getInstance().getAppiumUrl());
     }
 
-    private static AppiumDriver<MobileElement> initDriver(String platform, DesiredCapabilities caps,
-            String appiumUrl) {
-
-        AppiumDriver<MobileElement> driver;
+    private static AppiumDriver initDriver(String platform, BaseOptions<?> options, String appiumUrl) {
+        AppiumDriver driver;
 
         try {
             URL url = new URL(appiumUrl);
 
             if (platform.equalsIgnoreCase("android")) {
-                caps.setCapability("platformName", "Android");
-                driver = new AndroidDriver<>(url, caps);
-                LOGGER.info(String.format("\n\t[Thread-%d] Android driver created for device [%s]\n\t",
-                        Thread.currentThread().getId(), caps.getCapability("deviceName")));
+                driver = new AndroidDriver(url, options);
+                LOGGER.info("[Thread-{}] Android driver created", Thread.currentThread().getId());
 
             } else if (platform.equalsIgnoreCase("ios")) {
-                caps.setCapability("platformName", "iOS");
-                caps.setCapability("automationName", "XCUITest");
-                driver = new IOSDriver<>(url, caps);
-                LOGGER.info(String.format("\n\t[Thread-%d] iOS driver created for device [%s]\n\t",
-                        Thread.currentThread().getId(), caps.getCapability("deviceName")));
+                driver = new IOSDriver(url, options);
+                LOGGER.info("[Thread-{}] iOS driver created", Thread.currentThread().getId());
 
             } else {
                 throw new IllegalArgumentException("Unsupported platform: " + platform);
@@ -175,5 +198,18 @@ public class MobileDriverManager {
 
         driverThread.set(driver);
         return driver;
+    }
+
+    private static String extractAppId(JsonObject platformConfig, String platform) {
+        if (platform.equalsIgnoreCase("android")) {
+            if (platformConfig.has("appPackage")) {
+                return platformConfig.get("appPackage").getAsString();
+            }
+        } else if (platform.equalsIgnoreCase("ios")) {
+            if (platformConfig.has("bundleId")) {
+                return platformConfig.get("bundleId").getAsString();
+            }
+        }
+        return null;
     }
 }

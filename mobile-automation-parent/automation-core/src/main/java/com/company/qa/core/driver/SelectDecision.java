@@ -1,5 +1,6 @@
 package com.company.qa.core.driver;
 
+import io.appium.java_client.AppiumBy;
 import org.openqa.selenium.By;
 
 public class SelectDecision {
@@ -22,6 +23,8 @@ public class SelectDecision {
                 return By.linkText(value);
             case "partialLinkText":
                 return By.partialLinkText(value);
+            case "accessibilityId":
+                return AppiumBy.accessibilityId(value);
             default:
                 throw new IllegalArgumentException("Not a valid selector type: " + selectorType);
         }

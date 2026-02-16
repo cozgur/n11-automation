@@ -1,0 +1,5 @@
+# Prod environment configuration (read-only tests)
+env: prod
+
+reporting:
+  log_level: WARN

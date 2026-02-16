@@ -1,8 +1,8 @@
 package com.company.qa.core.util;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 public class LogManager {
 
-    public static final Logger LOGGER = Logger.getLogger(LogManager.class);
+    public static final Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(LogManager.class);
 }

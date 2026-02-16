@@ -1,0 +1,8 @@
+# Staging environment configuration
+env: staging
+
+appium:
+  url: "http://staging-appium:4723"
+
+reporting:
+  log_level: INFO

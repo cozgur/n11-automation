@@ -10,7 +10,7 @@ Feature: CloneAI Mobile smoke tests
   #   mvn test -Dapp=cloneai -Dplatform=android -DdeviceName="Samsung Galaxy S22"
   # ---------------------------------------------------------------
 
-  @android @ios
+  @smoke @android @ios
   Scenario: App launches successfully
     Given I use mobile driver from config
     When I launch the mobile app

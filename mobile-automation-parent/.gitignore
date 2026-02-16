@@ -1,0 +1,44 @@
+# Compiled class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# Maven build output
+target/
+
+# Log files
+*.log
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+
+# IDE - VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Environment and credentials
+.env
+*.env
+credentials*
+
+# Allure reporting
+allure-results/
+allure-report/
+
+# Test artifacts
+screenshots/
+
+# Appium / WebDriver binaries
+tools/drivers/

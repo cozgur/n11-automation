@@ -1,6 +1,6 @@
 # Default test configuration
 appium:
-  url: "http://127.0.0.1:4723/wd/hub"
+  url: "http://127.0.0.1:4723"
 
 timeouts:
   implicit: 10

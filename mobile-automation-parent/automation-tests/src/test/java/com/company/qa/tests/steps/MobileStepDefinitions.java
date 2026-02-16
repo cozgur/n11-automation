@@ -5,35 +5,36 @@ import com.company.qa.core.driver.MobileDriverManager;
 import com.company.qa.core.driver.SelectDecision;
 import com.company.qa.core.action.MobileActions;
 import com.company.qa.core.util.JsonParser;
-import cucumber.api.DataTable;
-import cucumber.api.java.en.And;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
-import cucumber.api.java.en.When;
-import gherkin.formatter.model.DataTableRow;
+import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.MobileElement;
-import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
-import io.appium.java_client.android.AndroidKeyCode;
-import org.junit.Assert;
+import io.appium.java_client.android.nativekey.AndroidKey;
+import io.appium.java_client.android.nativekey.KeyEvent;
+import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.And;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.ScreenOrientation;
 import org.openqa.selenium.WebElement;
 
+import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static com.company.qa.core.util.LogManager.LOGGER;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class MobileStepDefinitions {
 
     private JsonObject pageObject;
     private By by;
 
-    private AppiumDriver<MobileElement> getDriver() {
+    private AppiumDriver getDriver() {
         return MobileDriverManager.getDriver();
     }
 
@@ -68,8 +69,8 @@ public class MobileStepDefinitions {
     @Given("^I use (android|ios) mobile driver with capabilities$")
     public void useMobileDriverWithCapabilities(String platform, DataTable table) {
         Map<String, String> capabilities = new HashMap<>();
-        for (DataTableRow row : table.getGherkinRows()) {
-            capabilities.put(row.getCells().get(0), row.getCells().get(1));
+        for (List<String> row : table.asLists(String.class)) {
+            capabilities.put(row.get(0), row.get(1));
         }
 
         String appiumUrl = capabilities.remove("appiumUrl");
@@ -96,25 +97,27 @@ public class MobileStepDefinitions {
 
     @When("^I launch the mobile app$")
     public void iLaunchApp() {
-        getDriver().launchApp();
+        getDriver().activateApp(MobileDriverManager.getAppId());
         LOGGER.info("\n\tMobile app launched\n\t");
     }
 
     @When("^I close the mobile app$")
     public void iCloseApp() {
-        getDriver().closeApp();
+        getDriver().terminateApp(MobileDriverManager.getAppId());
         LOGGER.info("\n\tMobile app closed\n\t");
     }
 
     @When("^I reset the mobile app$")
     public void iResetApp() {
-        getDriver().resetApp();
+        String appId = MobileDriverManager.getAppId();
+        getDriver().terminateApp(appId);
+        getDriver().activateApp(appId);
         LOGGER.info("\n\tMobile app reset\n\t");
     }
 
     @When("^I send the mobile app to background for (\\d+) seconds$")
     public void iBackgroundApp(int seconds) {
-        getDriver().runAppInBackground(seconds);
+        getDriver().runAppInBackground(Duration.ofSeconds(seconds));
         LOGGER.info(String.format("\n\tMobile app sent to background for [%d] seconds\n\t", seconds));
     }
 
@@ -126,7 +129,7 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = getDriver().findElement(this.by);
-        new TouchAction(getDriver()).tap(element).perform();
+        new MobileActions(getDriver()).tap(element);
         LOGGER.info(String.format("\n\tTapped element: [%s]\n\t", pageKey));
     }
 
@@ -136,19 +139,19 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = getDriver().findElement(this.by);
-        new TouchAction(getDriver()).longPress(element).release().perform();
+        new MobileActions(getDriver()).longPress(element);
         LOGGER.info(String.format("\n\tLong pressed element: [%s]\n\t", pageKey));
     }
 
     @Then("^I tap on coordinates (\\d+) (\\d+)$")
     public void iTapOnCoordinates(int x, int y) {
-        new TouchAction(getDriver()).tap(x, y).perform();
+        new MobileActions(getDriver()).tapCoordinates(x, y);
         LOGGER.info(String.format("\n\tTapped on coordinates: [%d, %d]\n\t", x, y));
     }
 
     @Then("^I long press on coordinates (\\d+) (\\d+)$")
     public void iLongPressOnCoordinates(int x, int y) {
-        new TouchAction(getDriver()).longPress(x, y).release().perform();
+        new MobileActions(getDriver()).longPressCoordinates(x, y);
         LOGGER.info(String.format("\n\tLong pressed on coordinates: [%d, %d]\n\t", x, y));
     }
 
@@ -173,7 +176,7 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = getDriver().findElement(this.by);
-        getDriver().pinch(element);
+        new MobileActions(getDriver()).pinch(element);
         LOGGER.info(String.format("\n\tPinched element: [%s]\n\t", pageKey));
     }
 
@@ -183,7 +186,7 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         WebElement element = getDriver().findElement(this.by);
-        getDriver().zoom(element);
+        new MobileActions(getDriver()).zoom(element);
         LOGGER.info(String.format("\n\tZoomed element: [%s]\n\t", pageKey));
     }
 
@@ -208,7 +211,7 @@ public class MobileStepDefinitions {
     @Then("^I press the back button$")
     public void iPressBackButton() {
         if (getDriver() instanceof AndroidDriver) {
-            ((AndroidDriver) getDriver()).pressKeyCode(AndroidKeyCode.BACK);
+            ((AndroidDriver) getDriver()).pressKey(new KeyEvent(AndroidKey.BACK));
             LOGGER.info("\n\tPressed back button\n\t");
         } else {
             LOGGER.info("\n\tBack button is only available on Android\n\t");
@@ -218,7 +221,7 @@ public class MobileStepDefinitions {
     @Then("^I press the home button$")
     public void iPressHomeButton() {
         if (getDriver() instanceof AndroidDriver) {
-            ((AndroidDriver) getDriver()).pressKeyCode(AndroidKeyCode.HOME);
+            ((AndroidDriver) getDriver()).pressKey(new KeyEvent(AndroidKey.HOME));
             LOGGER.info("\n\tPressed home button\n\t");
         } else {
             LOGGER.info("\n\tHome button is only available on Android\n\t");
@@ -228,7 +231,7 @@ public class MobileStepDefinitions {
     @Then("^I press the enter key$")
     public void iPressEnterKey() {
         if (getDriver() instanceof AndroidDriver) {
-            ((AndroidDriver) getDriver()).pressKeyCode(AndroidKeyCode.ENTER);
+            ((AndroidDriver) getDriver()).pressKey(new KeyEvent(AndroidKey.ENTER));
             LOGGER.info("\n\tPressed enter key\n\t");
         } else {
             LOGGER.info("\n\tAndroid key code is only available on Android\n\t");
@@ -237,13 +240,17 @@ public class MobileStepDefinitions {
 
     @Then("^I lock the device$")
     public void iLockDevice() {
-        getDriver().lockScreen(0);
+        if (getDriver() instanceof AndroidDriver) {
+            ((AndroidDriver) getDriver()).lockDevice();
+        }
         LOGGER.info("\n\tDevice locked\n\t");
     }
 
     @Then("^I lock the device for (\\d+) seconds$")
     public void iLockDeviceForSeconds(int seconds) {
-        getDriver().lockScreen(seconds);
+        if (getDriver() instanceof AndroidDriver) {
+            ((AndroidDriver) getDriver()).lockDevice(Duration.ofSeconds(seconds));
+        }
         LOGGER.info(String.format("\n\tDevice locked for [%d] seconds\n\t", seconds));
     }
 
@@ -296,9 +303,9 @@ public class MobileStepDefinitions {
 
     @Then("^I fill mobile by (\\w+(?: \\w+)*)$")
     public void iFillMobileBy(String selectKey, DataTable table) {
-        for (DataTableRow row : table.getGherkinRows()) {
-            String key = row.getCells().get(0);
-            String value = row.getCells().get(1);
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
+            String value = row.get(1);
             JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
             String pageElement = pageElementObject.get(key).getAsString();
             this.by = SelectDecision.resolve(selectKey, pageElement);
@@ -310,13 +317,13 @@ public class MobileStepDefinitions {
 
     @Then("^I tap mobile by (\\w+(?: \\w+)*)$")
     public void iTapMobileBy(String selectKey, DataTable table) {
-        for (DataTableRow row : table.getGherkinRows()) {
-            String key = row.getCells().get(0);
+        for (List<String> row : table.asLists(String.class)) {
+            String key = row.get(0);
             JsonObject pageElementObject = this.pageObject.get("elements").getAsJsonObject();
             String pageElement = pageElementObject.get(key).getAsString();
             this.by = SelectDecision.resolve(selectKey, pageElement);
             WebElement element = getDriver().findElement(this.by);
-            new TouchAction(getDriver()).tap(element).perform();
+            new MobileActions(getDriver()).tap(element);
             LOGGER.info(String.format("\n\tMobile tapped element: [%s]\n\t", key));
         }
     }
@@ -325,14 +332,14 @@ public class MobileStepDefinitions {
 
     @Then("^I tap element with accessibility id \"([^\"]*)\"$")
     public void iTapByAccessibilityId(String accessibilityId) {
-        WebElement element = getDriver().findElementByAccessibilityId(accessibilityId);
-        new TouchAction(getDriver()).tap(element).perform();
+        WebElement element = getDriver().findElement(AppiumBy.accessibilityId(accessibilityId));
+        new MobileActions(getDriver()).tap(element);
         LOGGER.info(String.format("\n\tTapped element with accessibility ID: [%s]\n\t", accessibilityId));
     }
 
     @Then("^I type \"([^\"]*)\" on element with accessibility id \"([^\"]*)\"$")
     public void iTypeByAccessibilityId(String text, String accessibilityId) {
-        getDriver().findElementByAccessibilityId(accessibilityId).sendKeys(text);
+        getDriver().findElement(AppiumBy.accessibilityId(accessibilityId)).sendKeys(text);
         LOGGER.info(String.format("\n\tTyped [%s] on element with accessibility ID: [%s]\n\t", text, accessibilityId));
     }
 
@@ -344,7 +351,9 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         boolean isDisplayed = getDriver().findElement(this.by).isDisplayed();
-        Assert.assertTrue(String.format("Expected mobile element [%s] to be displayed", pageKey), isDisplayed);
+        assertThat(isDisplayed)
+                .as("Expected mobile element [%s] to be displayed", pageKey)
+                .isTrue();
         LOGGER.info(String.format("\n\tMobile element [%s] is displayed\n\t", pageKey));
     }
 
@@ -354,8 +363,10 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         String actualText = getDriver().findElement(this.by).getText();
-        Assert.assertEquals(String.format("Expected text [%s] but got [%s] for element [%s]",
-                expectedText, actualText, pageKey), expectedText, actualText);
+        assertThat(actualText)
+                .as("Expected text [%s] but got [%s] for element [%s]",
+                        expectedText, actualText, pageKey)
+                .isEqualTo(expectedText);
         LOGGER.info(String.format("\n\tMobile element [%s] text equals [%s]\n\t", pageKey, expectedText));
     }
 
@@ -365,8 +376,10 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         String actualText = getDriver().findElement(this.by).getText();
-        Assert.assertTrue(String.format("Expected text of element [%s] to contain [%s] but got [%s]",
-                pageKey, expectedText, actualText), actualText.contains(expectedText));
+        assertThat(actualText)
+                .as("Expected text of element [%s] to contain [%s] but got [%s]",
+                        pageKey, expectedText, actualText)
+                .contains(expectedText);
         LOGGER.info(String.format("\n\tMobile element [%s] text contains [%s]\n\t", pageKey, expectedText));
     }
 
@@ -376,17 +389,20 @@ public class MobileStepDefinitions {
         String pageElement = pageElementObject.get(pageKey).getAsString();
         this.by = SelectDecision.resolve(selectKey, pageElement);
         String actualValue = getDriver().findElement(this.by).getAttribute(attribute);
-        Assert.assertEquals(String.format("Expected attribute [%s] of element [%s] to be [%s] but got [%s]",
-                attribute, pageKey, expectedValue, actualValue), expectedValue, actualValue);
+        assertThat(actualValue)
+                .as("Expected attribute [%s] of element [%s] to be [%s] but got [%s]",
+                        attribute, pageKey, expectedValue, actualValue)
+                .isEqualTo(expectedValue);
         LOGGER.info(String.format("\n\tMobile element [%s] attribute [%s] equals [%s]\n\t",
                 pageKey, attribute, expectedValue));
     }
 
     @Then("^I see mobile element with accessibility id \"([^\"]*)\" is displayed$")
     public void iSeeMobileElementByAccessibilityIdDisplayed(String accessibilityId) {
-        WebElement element = getDriver().findElementByAccessibilityId(accessibilityId);
-        Assert.assertTrue(String.format("Expected element with accessibility ID [%s] to be displayed", accessibilityId),
-                element.isDisplayed());
+        WebElement element = getDriver().findElement(AppiumBy.accessibilityId(accessibilityId));
+        assertThat(element.isDisplayed())
+                .as("Expected element with accessibility ID [%s] to be displayed", accessibilityId)
+                .isTrue();
         LOGGER.info(String.format("\n\tMobile element with accessibility ID [%s] is displayed\n\t", accessibilityId));
     }
 
@@ -406,15 +422,17 @@ public class MobileStepDefinitions {
 
     @Then("^I see app \"([^\"]*)\" is installed$")
     public void iSeeAppInstalled(String bundleId) {
-        Assert.assertTrue(String.format("Expected app [%s] to be installed", bundleId),
-                getDriver().isAppInstalled(bundleId));
+        assertThat(getDriver().isAppInstalled(bundleId))
+                .as("Expected app [%s] to be installed", bundleId)
+                .isTrue();
         LOGGER.info(String.format("\n\tApp [%s] is installed\n\t", bundleId));
     }
 
     @Then("^I see app \"([^\"]*)\" is not installed$")
     public void iSeeAppNotInstalled(String bundleId) {
-        Assert.assertFalse(String.format("Expected app [%s] to NOT be installed", bundleId),
-                getDriver().isAppInstalled(bundleId));
+        assertThat(getDriver().isAppInstalled(bundleId))
+                .as("Expected app [%s] to NOT be installed", bundleId)
+                .isFalse();
         LOGGER.info(String.format("\n\tApp [%s] is not installed\n\t", bundleId));
     }
 
@@ -423,8 +441,10 @@ public class MobileStepDefinitions {
     @Then("^I see orientation is (landscape|portrait)$")
     public void iSeeOrientation(String expectedOrientation) {
         ScreenOrientation current = getDriver().getOrientation();
-        Assert.assertEquals(String.format("Expected orientation [%s] but got [%s]",
-                expectedOrientation, current.value()), expectedOrientation.toLowerCase(), current.value().toLowerCase());
+        assertThat(current.value().toLowerCase())
+                .as("Expected orientation [%s] but got [%s]",
+                        expectedOrientation, current.value())
+                .isEqualTo(expectedOrientation.toLowerCase());
         LOGGER.info(String.format("\n\tOrientation is [%s] as expected\n\t", expectedOrientation));
     }
 
@@ -444,8 +464,10 @@ public class MobileStepDefinitions {
     public void iSeeCurrentActivity(String expectedActivity) {
         if (getDriver() instanceof AndroidDriver) {
             String currentActivity = ((AndroidDriver) getDriver()).currentActivity();
-            Assert.assertEquals(String.format("Expected activity [%s] but got [%s]",
-                    expectedActivity, currentActivity), expectedActivity, currentActivity);
+            assertThat(currentActivity)
+                    .as("Expected activity [%s] but got [%s]",
+                            expectedActivity, currentActivity)
+                    .isEqualTo(expectedActivity);
             LOGGER.info(String.format("\n\tCurrent activity is [%s] as expected\n\t", currentActivity));
         } else {
             LOGGER.info("\n\tCurrent activity is only available on Android\n\t");

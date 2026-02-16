@@ -1,29 +1,23 @@
 package com.company.qa.apps.cloneai.screens;
 
-import com.company.qa.core.driver.MobileDriverManager;
-import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.MobileElement;
+import com.company.qa.core.base.BaseScreen;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
 import java.util.List;
 
-public class SearchResultsScreen {
-
-    private AppiumDriver<MobileElement> driver() {
-        return MobileDriverManager.getDriver();
-    }
+public class SearchResultsScreen extends BaseScreen {
 
     private static final By RESULTS_LIST = By.id("com.cloneai.app:id/searchResults");
     private static final By RESULT_ITEM = By.id("com.cloneai.app:id/resultItem");
     private static final By NO_RESULTS_LABEL = By.id("com.cloneai.app:id/noResultsLabel");
 
     public boolean isResultsDisplayed() {
-        return driver().findElement(RESULTS_LIST).isDisplayed();
+        return find(RESULTS_LIST).isDisplayed();
     }
 
     public List<WebElement> getResultItems() {
-        return driver().findElements(RESULT_ITEM);
+        return findAll(RESULT_ITEM);
     }
 
     public int getResultCount() {
@@ -35,7 +29,7 @@ public class SearchResultsScreen {
     }
 
     public boolean isNoResultsDisplayed() {
-        return !driver().findElements(NO_RESULTS_LABEL).isEmpty()
-                && driver().findElement(NO_RESULTS_LABEL).isDisplayed();
+        List<WebElement> elements = findAll(NO_RESULTS_LABEL);
+        return !elements.isEmpty() && elements.get(0).isDisplayed();
     }
 }

@@ -1,16 +1,10 @@
 package com.company.qa.apps.funnelfox.screens;
 
-import com.company.qa.core.driver.MobileDriverManager;
-import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.MobileElement;
+import com.company.qa.core.base.BaseScreen;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 
-public class DashboardScreen {
-
-    private AppiumDriver<MobileElement> driver() {
-        return MobileDriverManager.getDriver();
-    }
+public class DashboardScreen extends BaseScreen {
 
     // Locators
     private static final By ANALYTICS_CARD = By.id("com.funnelfox.app:id/analyticsCard");
@@ -20,22 +14,22 @@ public class DashboardScreen {
     private static final By USER_AVATAR = By.id("com.funnelfox.app:id/userAvatar");
 
     public WebElement getAnalyticsCard() {
-        return driver().findElement(ANALYTICS_CARD);
+        return find(ANALYTICS_CARD);
     }
 
     public void openFunnelsTab() {
-        driver().findElement(FUNNELS_TAB).click();
+        tap(FUNNELS_TAB);
     }
 
     public void openEventsTab() {
-        driver().findElement(EVENTS_TAB).click();
+        tap(EVENTS_TAB);
     }
 
     public void openSettings() {
-        driver().findElement(SETTINGS_ICON).click();
+        tap(SETTINGS_ICON);
     }
 
     public void openUserProfile() {
-        driver().findElement(USER_AVATAR).click();
+        tap(USER_AVATAR);
     }
 }

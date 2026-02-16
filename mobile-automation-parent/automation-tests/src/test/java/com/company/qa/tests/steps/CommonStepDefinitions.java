@@ -1,6 +1,6 @@
 package com.company.qa.tests.steps;
 
-import cucumber.api.java.en.When;
+import io.cucumber.java.en.When;
 
 import static com.company.qa.core.util.LogManager.LOGGER;
 
