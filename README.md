@@ -19,7 +19,7 @@ Multi-module mobile and web test automation framework built with **Appium**, **C
 
 - **Java 11** (JDK)
 - **Maven 3.8+**
-- **Appium 2.x** server installed and running
+- **Appium 3.x** server installed and running
 - **Android SDK** with platform-tools on PATH (for Android testing)
 - **Xcode** on macOS (for iOS testing)
 - A connected device or configured emulator/simulator
