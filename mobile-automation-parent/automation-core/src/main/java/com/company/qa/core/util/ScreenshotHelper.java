@@ -6,15 +6,22 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 
 /**
- * Utility for capturing screenshots.
+ * Utility class for capturing screenshots from a {@link WebDriver} session.
+ *
+ * <p>Supports both raw byte-array capture and automatic attachment to
+ * Allure reports via the {@link Attachment} annotation.</p>
  */
 public class ScreenshotHelper {
 
     /**
-     * Takes a screenshot and returns raw bytes.
+     * Takes a screenshot and returns the raw PNG bytes.
      *
-     * @param driver the WebDriver instance
-     * @return screenshot as byte array, or empty array if driver does not support screenshots
+     * <p>If the driver does not implement {@link TakesScreenshot}, a warning
+     * is logged and an empty byte array is returned.</p>
+     *
+     * @param driver the WebDriver instance to capture the screenshot from
+     * @return the screenshot as a PNG byte array, or an empty array if the
+     *         driver does not support screenshots
      */
     public static byte[] takeScreenshot(WebDriver driver) {
         if (driver instanceof TakesScreenshot) {
@@ -25,10 +32,10 @@ public class ScreenshotHelper {
     }
 
     /**
-     * Takes a screenshot and attaches it to the Allure report.
+     * Takes a screenshot and attaches it to the Allure report as a PNG image.
      *
-     * @param driver the WebDriver instance
-     * @return screenshot as byte array
+     * @param driver the WebDriver instance to capture the screenshot from
+     * @return the screenshot as a PNG byte array
      */
     @Attachment(value = "Screenshot", type = "image/png")
     public static byte[] allureScreenshot(WebDriver driver) {
