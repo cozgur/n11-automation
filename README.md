@@ -7,8 +7,8 @@ Multi-module mobile and web test automation framework built with **Appium**, **C
 | Component | Version |
 |-----------|---------|
 | Java | 11 |
-| Selenium | 4.16.1 |
-| Appium | 9.1.0 |
+| Selenium | 4.35.0 |
+| Appium | 10.0.0 |
 | Cucumber | 7.15.0 |
 | TestNG | 7.9.0 |
 | REST Assured | 5.4.0 |
