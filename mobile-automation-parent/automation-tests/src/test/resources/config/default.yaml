@@ -2,15 +2,17 @@
 appium:
   url: "http://127.0.0.1:4723"
 
-timeouts:
+timeout:
   implicit: 10
   explicit: 30
   page_load: 60
 
 retry:
-  max_attempts: 3
-  delay_ms: 1000
+  max: 3
+  delayMs: 1000
+
+screenshot:
+  onFailure: true
 
 reporting:
-  screenshots_on_failure: true
   log_level: INFO

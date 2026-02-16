@@ -1,35 +1,62 @@
 package com.company.qa.apps.funnelfox.capabilities;
 
 import com.company.qa.core.driver.CapabilityBuilder;
+import com.company.qa.core.util.JsonParser;
+import com.google.gson.JsonObject;
 import io.appium.java_client.remote.options.BaseOptions;
 
+/**
+ * Capability factory for the FunnelFox mobile application.
+ * Reads device defaults from apps.json, allowing override via system properties.
+ */
 public class FunnelFoxCapabilities {
 
+    private static final String APP_KEY = "funnelfox";
+
+    /**
+     * Creates Android capabilities for FunnelFox.
+     * Device and version defaults come from apps.json.
+     *
+     * @return configured UiAutomator2Options
+     */
     public static BaseOptions<?> android() {
-        return new CapabilityBuilder()
-                .platform("android")
-                .capability("appPackage", "com.funnelfox.app")
-                .capability("appActivity", ".MainActivity")
-                .device("Pixel 6")
-                .version("13.0")
-                .build();
+        return buildForPlatform("android");
     }
 
+    /**
+     * Creates iOS capabilities for FunnelFox.
+     * Device and version defaults come from apps.json.
+     *
+     * @return configured XCUITestOptions
+     */
     public static BaseOptions<?> ios() {
-        return new CapabilityBuilder()
-                .platform("ios")
-                .capability("bundleId", "com.funnelfox.app")
-                .device("iPhone 14")
-                .version("16.0")
-                .build();
+        return buildForPlatform("ios");
     }
 
+    /**
+     * Creates capabilities for the specified platform.
+     *
+     * @param platform "android" or "ios"
+     * @return configured options
+     * @throws IllegalArgumentException if platform is not found in apps.json
+     */
     public static BaseOptions<?> forPlatform(String platform) {
-        if ("android".equalsIgnoreCase(platform)) {
-            return android();
-        } else if ("ios".equalsIgnoreCase(platform)) {
-            return ios();
+        return buildForPlatform(platform.toLowerCase());
+    }
+
+    private static BaseOptions<?> buildForPlatform(String platform) {
+        JsonObject appsConfig = JsonParser.parse("apps");
+        JsonObject appConfig = appsConfig.getAsJsonObject(APP_KEY);
+        if (appConfig == null) {
+            throw new IllegalArgumentException("App [" + APP_KEY + "] not found in apps.json");
         }
-        throw new IllegalArgumentException("Unsupported platform: " + platform);
+        JsonObject platformConfig = appConfig.getAsJsonObject(platform);
+        if (platformConfig == null) {
+            throw new IllegalArgumentException("Platform [" + platform + "] not found for app [" + APP_KEY + "]");
+        }
+        return new CapabilityBuilder()
+                .platform(platform)
+                .fromJson(platformConfig)
+                .build();
     }
 }
