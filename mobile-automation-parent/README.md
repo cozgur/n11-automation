@@ -6,7 +6,7 @@ A multi-module Maven project for mobile test automation using Appium, Cucumber, 
 
 - **Java 11** (JDK)
 - **Maven 3.8+**
-- **Appium 2.x** server installed and running
+- **Appium 3.x** server installed and running
 - **Android SDK** (for Android testing) with platform-tools on PATH
 - **Xcode** (for iOS testing, macOS only)
 - A real device connected via USB or an emulator/simulator configured
