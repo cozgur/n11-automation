@@ -4,7 +4,11 @@ import io.cucumber.java.en.When;
 
 import static com.company.qa.core.util.LogManager.LOGGER;
 
-public class CommonStepDefinitions {
+public class CommonStepDefinitions extends BaseStepDefinition {
+
+    public CommonStepDefinitions(ScenarioState state) {
+        super(state);
+    }
 
     @When("^I wait for (\\d+) seconds$")
     public void waitForNSeconds(long seconds) throws Exception {

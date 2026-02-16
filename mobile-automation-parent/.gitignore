@@ -42,3 +42,12 @@ screenshots/
 
 # Appium / WebDriver binaries
 tools/drivers/
+
+# Test output
+test-output/
+
+# Keystore files
+*.keystore
+
+# Local environment overrides
+.env.local
